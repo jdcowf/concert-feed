@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 import os
 import re
+from pathlib import Path
 
 def parse_catscradle_events():
     """Fetches and parses events from Cat's Cradle."""
@@ -244,7 +245,12 @@ if __name__ == "__main__":
     all_events.sort(key=lambda e: e['date_obj'])
 
     html_content = generate_html(all_events)
-    os.makedirs("public", exist_ok=True)
-    with open("public/index.html", "w") as f:
+
+    if '--output' in sys.argv:
+        dest = Path(sys.argv[sys.argv.index('--output') + 1])
+    else:
+        dest = Path('public/index.html')
+    dest.parent.mkdir(exist_ok=True, parents=True)
+    with dest.open('w') as f:
         f.write(html_content)
-    print(f"✅ Saved {len(all_events)} events to public/index.html")
+    print(f"✅ Saved {len(all_events)} events to {dest}")
