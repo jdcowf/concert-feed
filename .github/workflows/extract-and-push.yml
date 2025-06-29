@@ -1,0 +1,84 @@
+name: Extract and Push HTML
+
+on:
+  schedule:
+    - cron: "0 8 * * *"  # Daily at 8 AM UTC
+  workflow_dispatch:
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4
+
+      - name: Run parser
+        run: |
+          python scripts/extract_events.py > output.html
+
+      - name: Create orphan branch and push HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create a new orphan branch
+          git checkout --orphan events-html
+
+          # Remove all files except output.html
+          find . -mindepth 1 -not -name 'output.html' -exec rm -rf {} +
+
+          # Add and commit
+          git add output.html
+          git commit -m "Add extracted HTML output"
+
+          # Force-push to overwrite the branch
+          git push -f origin events-html
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install beautifulsoup4
+
+      - name: Run parser
+        run: |
+          python scripts/extract_events.py > index.html
+
+      - name: Create orphan branch and push HTML
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Create a new orphan branch
+          git checkout --orphan gh-pages
+
+          # Remove all files except index.html
+          find . -mindepth 1 -not -name 'index.html' -exec rm -rf {} +
+
+          # Add and commit
+          git add index.html
+          git commit -m "Add extracted HTML output"
+
+          # Force-push to overwrite the branch
+          git push -f origin gh-pages
