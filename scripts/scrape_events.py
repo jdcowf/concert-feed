@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import re
 from pathlib import Path
+import sys
 
 def parse_catscradle_events():
     """Fetches and parses events from Cat's Cradle."""
