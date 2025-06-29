@@ -38,7 +38,7 @@ jobs:
           git checkout --orphan gh-pages
 
           # Remove all files except index.html
-          find . -mindepth 1 -not -name 'index.html' -exec rm -rf {} +
+          find . -mindepth 1 -not -name 'index.html' -not -name '.git' -exec rm -rf {} +
 
           # Add and commit
           git add index.html
