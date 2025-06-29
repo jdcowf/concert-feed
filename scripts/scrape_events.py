@@ -10,7 +10,7 @@ def parse_catscradle_events():
     """Fetches and parses events from Cat's Cradle."""
     URL = 'https://catscradle.com/events/'
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)'
+        'User-Agent': 'concert-feed'
     }
     response = requests.get(URL, headers=headers)
     response.raise_for_status()
