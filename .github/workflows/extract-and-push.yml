@@ -27,7 +27,7 @@ jobs:
 
       - name: Run parser
         run: |
-          python scripts/scrape_events.py > index.html
+          python scripts/scrape_events.py
 
       - name: Create orphan branch and push HTML
         run: |
