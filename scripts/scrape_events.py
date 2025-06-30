@@ -132,19 +132,11 @@ def scrape_ritz_events():
 
     soup = BeautifulSoup(html, 'html.parser')
 
-    month_map = {
-        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
-    }
 
     def parse_event_date(date_str):
-        match = re.search(r'\w{3}, (\w{3}) (\d{1,2})', date_str)
-        if not match:
-            return datetime.max
-        month, day = match.groups()
-        year = datetime.now().year
-        return datetime(year, month_map.get(month, 1), int(day))
+        return dt.datetime.strptime("%a %b %d, %Y")
+
+
 
 
     events = []
