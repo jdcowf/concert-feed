@@ -158,7 +158,7 @@ def scrape_ritz_events():
                 'date_str': date_tag.text.strip(),
                 'date_obj': parse_event_date(date_tag.text.strip()) if date_tag else datetime.max,
                 'tickets': link_tag['href'],
-                'venue': "The Ritz"
+                'venue': "The Ritz Raleigh"
             }
 
             events.append(EventInfo(**event))
