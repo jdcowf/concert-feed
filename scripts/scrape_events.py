@@ -48,7 +48,7 @@ def parse_catscradle_events():
             'date_str': date_str.text.strip() if date_str else 'TBA',
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
-            'venue': venue.text.removeprefix("Cat's Cradle -").strip() if venue else '',
+            'venue': venue.text.removeprefix("Cat’s Cradle –").strip() if venue else '',
             'image': image['src'] if image and image.has_attr('src') else '',
             'tickets': tickets['href'] if tickets and tickets.has_attr('href') else ''
         }
