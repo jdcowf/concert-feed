@@ -5,6 +5,21 @@ import os
 import re
 from pathlib import Path
 import sys
+from dataclasses import dataclass
+import datetime as dt
+import functools
+import itertools
+
+@dataclass
+class EventInfo:
+    title: str = ""
+    link: str = "#"
+    date_str: str = ""
+    date_obj: dt.datetime = dt.datetime.max
+    time: str = ""
+    venue: str = ""
+    tickets: str = ""
+
 
 def scrape_catscradle_events():
     """Fetches and parses events from Cat's Cradle."""
@@ -43,6 +58,7 @@ def scrape_catscradle_events():
         tickets = event.select_one('.rhp-event-list-cta a')
 
 
+
         event_data = {
             'title': title.text.strip() if title else 'Untitled',
             'link': link['href'] if link and link.has_attr('href') else '#',
@@ -50,13 +66,11 @@ def scrape_catscradle_events():
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
             'venue': venue.text.strip() if venue else '',
-            'image': image['src'] if image and image.has_attr('src') else '',
             'tickets': tickets['href'] if tickets and tickets.has_attr('href') else '',
         }
+        events.append(EventInfo(**event_data))
 
-        events.append(event_data)
-
-    events.sort(key=lambda e: e['date_obj'])
+    events.sort(key=lambda e: e.date_obj)
     return events
 
 def scrape_local506_events():
@@ -102,17 +116,58 @@ def scrape_local506_events():
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
             'venue': venue.text.strip() if venue else 'Local 506',
-            'image': image['src'] if image and image.has_attr('src') else '',
             'tickets': tickets['href'] if tickets and tickets.has_attr('href') else '',
         }
 
-        events.append(event_data)
+        events.append(EventInfo(**event_data))
 
-    events.sort(key=lambda e: e['date_obj'])
+    events.sort(key=lambda e: e.date_obj)
+    return events
+
+
+def scrape_ritz_events():
+    # If you have the HTML in a file or a string, replace the following line accordingly
+    url = 'https://ritzraleigh.com/shows'  # Replace with actual page URL
+    html = requests.get(url).text
+
+    soup = BeautifulSoup(html, 'html.parser')
+
+    month_map = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    }
+
+    def parse_event_date(date_str):
+        match = re.search(r'\w{3}, (\w{3}) (\d{1,2})', date_str)
+        if not match:
+            return datetime.max
+        month, day = match.groups()
+        year = datetime.now().year
+        return datetime(year, month_map.get(month, 1), int(day))
+
+
+    events = []
+    for group in soup.find_all('div', class_='chakra-linkbox'):
+        try:
+            title_tag = group.select_one('p.chakra-text.css-zvlevn')
+            date_tag = group.select_one('p.chakra-text.css-aqbsuf')
+            link_tag = group.select_one('a.chakra-button[href*="ticketmaster.com"]')
+            event = {
+                'title': title_tag.text.strip(),
+                'date_str': date_tag.text.strip(),
+                'date_obj': parse_event_date(date_tag.text.strip()) if date_tag else datetime.max,
+                'tickets': link_tag['href'],
+                'venue': "The Ritz"
+            }
+
+            events.append(EventInfo(**event))
+        except Exception as e:
+            print(f"Error parsing event: {e}")
     return events
 
 def generate_html(events, title="Upcoming Concerts"):
-    venues = sorted(set(e['venue'] for e in events if e['venue']))
+    venues = sorted(set(e.venue for e in events if e.venue))
     venues_options = '\n'.join(
         f'<option value="{v}">{v}</option>' for v in venues
     )
@@ -199,12 +254,12 @@ def generate_html(events, title="Upcoming Concerts"):
 """
     for e in events:
         html += f"""
-    <div class="event" data-venue="{e['venue'].lower()}">
-      <h2><a href="{e['link']}" target="_blank" rel="noopener">{e['title']}</a></h2>
-      <p class="venue">{e['venue']}</p>
-      <p><strong>Date:</strong> {e['date_str']}</p>
-      <p><strong>Time:</strong> {e['time']}</p>
-      <p><a class="button" href="{e['tickets']}" target="_blank" rel="noopener">Buy Tickets</a></p>
+    <div class="event" data-venue="{e.venue.lower()}">
+      <h2><a href="{e.link}" target="_blank" rel="noopener">{e.title}</a></h2>
+      <p class="venue">{e.venue}</p>
+      <p><strong>Date:</strong> {e.date_str}</p>
+      <p><strong>Time:</strong> {e.time}</p>
+      <p><a class="button" href="{e.tickets}" target="_blank" rel="noopener">Buy Tickets</a></p>
     </div>
 """
     html += """
@@ -283,9 +338,12 @@ if __name__ == "__main__":
     all_events = []
 
     # Parse each venue individually and label the source in the venue field
-    catscradle_events = scrape_catscradle_events()
-    local506_events = scrape_local506_events()
-    all_events.extend(local506_events)
+    
+    all_events = list(itertools.chain.from_iterable([
+        scrape_catscradle_events(),
+        scrape_local506_events(),
+        scrape_ritz_events()
+    ]))
 
     # Future: Add more venue parsers here
     # other_venue_events = parse_other_venue_events()
@@ -294,7 +352,7 @@ if __name__ == "__main__":
     # all_events.extend(other_venue_events)
 
     # Interleave events by date
-    all_events.sort(key=lambda e: e['date_obj'])
+    all_events.sort(key=lambda e: e.date_obj)
 
     html_content = generate_html(all_events)
 
