@@ -134,7 +134,7 @@ def scrape_ritz_events():
 
 
     def parse_event_date(date_str):
-        return dt.datetime.strptime("%a %b %d, %Y")
+        return dt.datetime.strptime(date_str, "%a %b %d, %Y")
 
 
 
