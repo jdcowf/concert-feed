@@ -6,9 +6,62 @@ import re
 from pathlib import Path
 import sys
 
-def parse_catscradle_events():
+def scrape_catscradle_events():
     """Fetches and parses events from Cat's Cradle."""
     URL = 'https://catscradle.com/events/'
+    headers = {
+        'User-Agent': 'concert-feed'
+    }
+    response = requests.get(URL, headers=headers)
+    response.raise_for_status()
+    soup = BeautifulSoup(response.text, 'html.parser')
+    event_divs = soup.find_all('div', class_='rhpSingleEvent')
+
+    month_map = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
+        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
+        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+    }
+
+    def parse_event_date(date_str):
+        match = re.search(r'\w{3}, (\w{3}) (\d{1,2})', date_str)
+        if not match:
+            return datetime.max
+        month, day = match.groups()
+        year = datetime.now().year
+        return datetime(year, month_map.get(month, 1), int(day))
+
+    events = []
+
+    for event in event_divs:
+        title = event.select_one('h2')
+        link = event.select_one('a.url')
+        date_str = event.select_one('.singleEventDate')
+        time_details = event.select_one('.rhp-event__time-text--list')
+        venue = event.select_one('.rhp-event__venue-text--list')
+        image = event.select_one('.eventListImage')
+        tickets = event.select_one('.rhp-event-list-cta a')
+
+
+        event_data = {
+            'title': title.text.strip() if title else 'Untitled',
+            'link': link['href'] if link and link.has_attr('href') else '#',
+            'date_str': date_str.text.strip() if date_str else 'TBA',
+            'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
+            'time': time_details.text.strip() if time_details else '',
+            'venue': venue.text.strip() if venue else '',
+            'image': image['src'] if image and image.has_attr('src') else '',
+            'tickets': tickets['href'] if tickets and tickets.has_attr('href') else '',
+        }
+
+        events.append(event_data)
+
+    events.sort(key=lambda e: e['date_obj'])
+    return events
+
+def scrape_local506_events():
+    """Fetches and parses events from Cat's Cradle."""
+    URL = 'https://local506.com/events/'
     headers = {
         'User-Agent': 'concert-feed'
     }
@@ -48,16 +101,15 @@ def parse_catscradle_events():
             'date_str': date_str.text.strip() if date_str else 'TBA',
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
-            'venue': venue.text.strip() if venue else '',
+            'venue': venue.text.strip() if venue else 'Local 506',
             'image': image['src'] if image and image.has_attr('src') else '',
-            'tickets': tickets['href'] if tickets and tickets.has_attr('href') else ''
+            'tickets': tickets['href'] if tickets and tickets.has_attr('href') else '',
         }
 
         events.append(event_data)
 
     events.sort(key=lambda e: e['date_obj'])
     return events
-
 
 def generate_html(events, title="Upcoming Concerts"):
     venues = sorted(set(e['venue'] for e in events if e['venue']))
@@ -231,8 +283,9 @@ if __name__ == "__main__":
     all_events = []
 
     # Parse each venue individually and label the source in the venue field
-    catscradle_events = parse_catscradle_events()
-    all_events.extend(catscradle_events)
+    catscradle_events = scrape_catscradle_events()
+    local506_events = scrape_local506_events()
+    all_events.extend(local506_events)
 
     # Future: Add more venue parsers here
     # other_venue_events = parse_other_venue_events()
