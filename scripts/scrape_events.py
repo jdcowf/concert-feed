@@ -164,162 +164,184 @@ def generate_html(events, title="Upcoming Concerts"):
         f'<option value="{v}">{v}</option>' for v in venues
     )
 
-    html = f"""
+    html = html_template = html_template = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>{title}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Concert Listings</title>
   <style>
     body {{
-      font-family: system-ui, sans-serif;
-      background: #f4f4f4;
-      color: #111;
-      margin: 0;
-      padding: 2rem;
-      line-height: 1.5;
-    }}
-    h1 {{
-      font-size: 1.8rem;
-      margin-bottom: 1.2rem;
-    }}
-    #search, #venueFilter {{
-      width: 100%;
-      max-width: 400px;
-      padding: 0.5rem;
-      font-size: 1rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+      font-family: sans-serif;
+      background: #f8f9fa;
+      color: #222;
     }}
     .event {{
-      background: #fff;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-left: 4px solid #444;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      border: 1px solid #ccc;
+      margin: 1em;
+      padding: 1em;
+      border-radius: 8px;
+      position: relative;
+      background: white;
     }}
-    .event h2 {{
-      font-size: 1.25rem;
-      margin: 0 0 0.5rem 0;
+    .event.favorite {{
+      border-color: gold;
+      background: #fffbe6;
     }}
-    .event .venue {{
-      font-weight: bold;
-      color: #333;
+    .favorite-toggle {{
+      position: absolute;
+      top: 0.5em;
+      right: 0.5em;
+      font-size: 1.5em;
+      background: none;
+      border: none;
+      cursor: pointer;
     }}
-    .event p {{
-      margin: 0.2rem 0;
+    #controls {{
+      margin: 1em;
     }}
-    a {{
-      color: #0066cc;
-      text-decoration: none;
+    #controls form {{
+      margin-top: 1em;
     }}
-    a:hover {{
-      text-decoration: underline;
+    #favorites-list {{
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 0.5em;
     }}
-    .button {{
-      display: inline-block;
-      margin-top: 0.5rem;
-      padding: 0.4rem 0.8rem;
-      background: #222;
-      color: #fff;
-      text-decoration: none;
-      font-size: 0.9rem;
-      border-radius: 3px;
-    }}
-    .button:hover {{
-      background: #444;
+    #importExport {{
+      margin-top: 1em;
     }}
   </style>
 </head>
 <body>
-  <h1>{title}</h1>
+  <div id="controls">
+    <label><input type="checkbox" id="showFavoritesOnly"> Show only favorites</label>
 
-  <input type="text" id="search" placeholder="Search events..." aria-label="Search events" />
-  <select id="venueFilter" aria-label="Filter by venue">
-    <option value="">All Venues</option>
-    {venues_options}
-  </select>
+    <form id="addFavoriteForm">
+      <input type="text" id="manualFavoriteInput" placeholder="Add favorite artist..." required />
+      <button type="submit">Add</button>
+    </form>
+
+    <div id="importExport">
+      <button id="exportFavorites">Export Favorites</button>
+      <input type="file" id="importFavorites" accept=".json" />
+    </div>
+
+    <div id="favorites-list"></div>
+  </div>
 
   <div id="events">
-"""
-    for e in events:
-        html += f"""
-    <div class="event" data-venue="{e.venue.lower()}">
-      <h2><a href="{e.link}" target="_blank" rel="noopener">{e.title}</a></h2>
-      <p class="venue">{e.venue}</p>
-      <p><strong>Date:</strong> {e.date_str}</p>
-      <p><strong>Time:</strong> {e.time}</p>
-      <p><a class="button" href="{e.tickets}" target="_blank" rel="noopener">Buy Tickets</a></p>
-    </div>
-"""
-    html += """
+    {"".join(f'''
+    <div class="event" data-title="{e.title}">
+      <button class="favorite-toggle" data-title="{e.title}">☆</button>
+      <h2>{e.title}</h2>
+      <p>{e.date_str}</p>
+      <a href="{e.tickets}" target="_blank">Buy Tickets</a>
+    </div>''' for e in events)}
   </div>
 
   <script>
-    const searchInput = document.getElementById('search');
-    const venueSelect = document.getElementById('venueFilter');
-    const events = document.querySelectorAll('.event');
+    let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
 
-    // Utility: read URL params
-    function getUrlParams() {
-      return new URLSearchParams(window.location.search);
-    }
+    function saveFavorites() {{
+      localStorage.setItem("favorites", JSON.stringify(favorites));
+    }}
 
-    // Utility: update URL params without reloading
-    function updateUrlParams(params) {
-      const newUrl = window.location.pathname + '?' + params.toString();
-      history.replaceState(null, '', newUrl);
-    }
+    function renderFavoritesList() {{
+      const list = document.getElementById("favorites-list");
+      list.textContent = favorites.length ? "Favorites: " + favorites.join(", ") : "No favorites set.";
+    }}
 
-    function filterEvents() {
-      const searchTerm = searchInput.value.toLowerCase();
-      const venueFilter = venueSelect.value.toLowerCase();
-      events.forEach(event => {
-        const text = event.textContent.toLowerCase();
-        const venue = event.dataset.venue || '';
-        const matchesSearch = text.includes(searchTerm);
-        const matchesVenue = venueFilter === '' || venue === venueFilter;
-        event.style.display = matchesSearch && matchesVenue ? '' : 'none';
-      });
+    function isFavorite(title) {{
+      const lcTitle = title.toLowerCase();
+      return favorites.some(fav => lcTitle.includes(fav.toLowerCase()));
+    }}
 
-      // Update URL params
-      const params = getUrlParams();
-      if (searchTerm) {
-        params.set('search', searchTerm);
-      } else {
-        params.delete('search');
-      }
-      if (venueFilter) {
-        params.set('venue', venueFilter);
-      } else {
-        params.delete('venue');
-      }
-      updateUrlParams(params);
-    }
+    function renderEvents() {{
+      const showOnlyFavorites = document.getElementById("showFavoritesOnly").checked;
+      const allEvents = Array.from(document.querySelectorAll(".event"));
 
-    // Initialize inputs from URL params on load
-    function initFiltersFromUrl() {
-      const params = getUrlParams();
-      if (params.has('search')) {
-        searchInput.value = params.get('search');
-      }
-      if (params.has('venue')) {
-        venueSelect.value = params.get('venue');
-      }
-      filterEvents();
-    }
+      allEvents.forEach(div => {{
+        const title = div.dataset.title;
+        const matched = isFavorite(title);
+        div.classList.toggle("favorite", matched);
+        div.style.display = (!showOnlyFavorites || matched) ? "block" : "none";
+        div.querySelector(".favorite-toggle").textContent = matched ? "★" : "☆";
+      }});
+    }}
 
-    searchInput.addEventListener('input', filterEvents);
-    venueSelect.addEventListener('change', filterEvents);
+    function bindFavorites() {{
+      document.querySelectorAll(".favorite-toggle").forEach(button => {{
+        button.addEventListener("click", () => {{
+          const title = button.dataset.title;
+          const guess = prompt("Enter a keyword to favorite based on this title:", title);
+          if (!guess) return;
+          if (!favorites.includes(guess)) {{
+            favorites.push(guess);
+            saveFavorites();
+            renderEvents();
+            renderFavoritesList();
+          }}
+        }});
+      }});
+    }}
 
-    window.addEventListener('load', initFiltersFromUrl);
+    document.getElementById("showFavoritesOnly").addEventListener("change", renderEvents);
+
+    document.getElementById("addFavoriteForm").addEventListener("submit", (e) => {{
+      e.preventDefault();
+      const input = document.getElementById("manualFavoriteInput");
+      const keyword = input.value.trim();
+      if (keyword && !favorites.includes(keyword)) {{
+        favorites.push(keyword);
+        saveFavorites();
+        renderEvents();
+        renderFavoritesList();
+        input.value = "";
+      }}
+    }});
+
+    document.getElementById("exportFavorites").addEventListener("click", () => {{
+      const blob = new Blob([JSON.stringify(favorites, null, 2)], {{ type: "application/json" }});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "favorites.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }});
+
+    document.getElementById("importFavorites").addEventListener("change", (e) => {{
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {{
+        try {{
+          const imported = JSON.parse(reader.result);
+          if (Array.isArray(imported)) {{
+            favorites = imported;
+            saveFavorites();
+            renderEvents();
+            renderFavoritesList();
+          }} else {{
+            alert("Invalid format");
+          }}
+        }} catch {{
+          alert("Invalid JSON file");
+        }}
+      }};
+      reader.readAsText(file);
+    }});
+
+    renderEvents();
+    renderFavoritesList();
+    bindFavorites();
   </script>
-
 </body>
 </html>
 """
+
+
     return html
 
 
