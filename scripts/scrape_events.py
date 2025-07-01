@@ -177,6 +177,16 @@ def generate_html(events, title="Upcoming Concerts"):
       margin: 0;
       padding: 2rem;
     }}
+    h1 {{
+      font-size: 1.8rem;
+    }}
+    #search, #venueFilter {{
+      padding: 0.5rem;
+      font-size: 1rem;
+      margin: 0.5rem 0;
+      width: 100%;
+      max-width: 400px;
+    }}
     .event {{
       background: #fff;
       padding: 1rem;
@@ -189,11 +199,47 @@ def generate_html(events, title="Upcoming Concerts"):
     }}
     .button {{
       display: inline-block;
-      margin-top: 0.5rem;
       padding: 0.4rem 0.8rem;
       background: #222;
       color: #fff;
+      font-size: 0.9rem;
       border-radius: 3px;
+      margin-right: 0.5rem;
+      cursor: pointer;
+    }}
+    .button:hover {{
+      background: #444;
+    }}
+    .settings {{
+      background: #fff;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      margin-top: 1rem;
+      max-width: 500px;
+    }}
+    .settings h2 {{
+      margin-top: 0;
+    }}
+    .settings ul {{
+      list-style: none;
+      padding: 0;
+    }}
+    .settings li {{
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 0.25rem 0;
+    }}
+    .settings input[type="text"] {{
+      width: calc(100% - 100px);
+    }}
+    .settings-toggle {{
+      margin-top: 1rem;
+      background: #666;
+      color: #fff;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
     }}
   </style>
 </head>
@@ -205,10 +251,18 @@ def generate_html(events, title="Upcoming Concerts"):
     <option value="">All Venues</option>
     {venues_options}
   </select>
-  <div>
-    <input type="text" id="favoriteInput" placeholder="Add favorite keyword..." />
+  <label><input type="checkbox" id="favoritesOnly" /> Show only favorites</label>
+  <button class="settings-toggle" onclick="toggleSettings()">⚙️ Favorites Settings</button>
+
+  <div id="settingsPanel" class="settings" style="display:none;">
+    <h2>Favorite Keywords</h2>
+    <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." />
     <button onclick="addFavorite()">Add</button>
-    <label><input type="checkbox" id="favoritesOnly" /> Show only favorites</label>
+    <ul id="favoritesList"></ul>
+    <h3>Import/Export</h3>
+    <textarea id="favoritesJson" rows="4" style="width:100%;"></textarea>
+    <button onclick="exportFavorites()">Export</button>
+    <button onclick="importFavorites()">Import</button>
   </div>
 
   <div id="events">
@@ -220,17 +274,25 @@ def generate_html(events, title="Upcoming Concerts"):
       <p class="venue">{e.venue}</p>
       <p><strong>Date:</strong> {e.date_str}</p>
       <p><strong>Time:</strong> {e.time}</p>
-      <p><a class="button" href="{e.tickets}" target="_blank">Buy Tickets</a></p>
+      <p>
+        <a class="button" href="{e.tickets}" target="_blank">Buy Tickets</a>
+        <button class="button" onclick="toggleFavoriteFromEvent('{e.title.lower()}')">★ Favorite</button>
+      </p>
     </div>
 """
     html += """
   </div>
+
   <script>
     const searchInput = document.getElementById('search');
     const venueSelect = document.getElementById('venueFilter');
     const favoritesOnly = document.getElementById('favoritesOnly');
-    const favoriteInput = document.getElementById('favoriteInput');
-    const events = document.querySelectorAll('.event');
+    const favoritesList = document.getElementById('favoritesList');
+    const newFavoriteInput = document.getElementById('newFavoriteInput');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const favoritesJson = document.getElementById('favoritesJson');
+    const eventsContainer = document.getElementById('events');
+
     let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
     function saveFavorites() {
@@ -246,36 +308,103 @@ def generate_html(events, title="Upcoming Concerts"):
       const venueFilter = venueSelect.value.toLowerCase();
       const showFavoritesOnly = favoritesOnly.checked;
 
-      events.forEach(event => {
+      const eventElements = Array.from(document.querySelectorAll('.event'));
+
+      const sorted = eventElements.sort((a, b) => {
+        const aFav = isFavorite(a.dataset.title);
+        const bFav = isFavorite(b.dataset.title);
+        return (aFav === bFav) ? 0 : aFav ? -1 : 1;
+      });
+
+      eventsContainer.innerHTML = '';
+      sorted.forEach(event => {
         const title = event.dataset.title;
         const venue = event.dataset.venue;
         const isFav = isFavorite(title);
         event.classList.toggle('favorite', isFav);
         const matches = title.includes(searchTerm) && (venueFilter === '' || venue === venueFilter);
         const visible = matches && (!showFavoritesOnly || isFav);
-        event.style.display = visible ? '' : 'none';
+        if (visible) {
+          eventsContainer.appendChild(event);
+        }
       });
     }
 
     function addFavorite() {
-      const keyword = favoriteInput.value.trim().toLowerCase();
+      const keyword = newFavoriteInput.value.trim().toLowerCase();
       if (keyword && !favorites.includes(keyword)) {
         favorites.push(keyword);
+        newFavoriteInput.value = '';
         saveFavorites();
-        favoriteInput.value = '';
+        renderFavoritesList();
         renderEvents();
+      }
+    }
+
+    function removeFavorite(keyword) {
+      favorites = favorites.filter(f => f !== keyword);
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function renderFavoritesList() {
+      favoritesList.innerHTML = '';
+      favorites.forEach(fav => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${fav}</span> <button onclick="removeFavorite('${fav}')">Remove</button>`;
+        favoritesList.appendChild(li);
+      });
+    }
+
+    function toggleSettings() {
+      settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleFavoriteFromEvent(title) {
+      let matched = favorites.find(f => title.includes(f));
+      if (!matched) {
+        favorites.push(title);
+      } else {
+        favorites = favorites.filter(f => f !== matched);
+      }
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function exportFavorites() {
+      favoritesJson.value = JSON.stringify(favorites, null, 2);
+    }
+
+    function importFavorites() {
+      try {
+        const imported = JSON.parse(favoritesJson.value);
+        if (Array.isArray(imported)) {
+          favorites = imported.map(f => f.toLowerCase().trim()).filter(Boolean);
+          saveFavorites();
+          renderFavoritesList();
+          renderEvents();
+        }
+      } catch (e) {
+        alert("Invalid JSON");
       }
     }
 
     searchInput.addEventListener('input', renderEvents);
     venueSelect.addEventListener('change', renderEvents);
     favoritesOnly.addEventListener('change', renderEvents);
-    window.addEventListener('load', renderEvents);
+
+    window.addEventListener('load', () => {
+      renderFavoritesList();
+      renderEvents();
+    });
   </script>
 </body>
 </html>
 """
     return html
+
 
 
 
