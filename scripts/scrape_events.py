@@ -160,189 +160,123 @@ def scrape_ritz_events():
 
 def generate_html(events, title="Upcoming Concerts"):
     venues = sorted(set(e.venue for e in events if e.venue))
-    venues_options = '\n'.join(
-        f'<option value="{v}">{v}</option>' for v in venues
-    )
+    venues_options = '\n'.join(f'<option value="{v}">{v}</option>' for v in venues)
 
-    html = html_template = html_template = f"""
+    html = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Concert Listings</title>
+  <title>{title}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {{
-      font-family: sans-serif;
-      background: #f8f9fa;
-      color: #222;
+      font-family: system-ui, sans-serif;
+      background: #f4f4f4;
+      color: #111;
+      margin: 0;
+      padding: 2rem;
     }}
     .event {{
-      border: 1px solid #ccc;
-      margin: 1em;
-      padding: 1em;
-      border-radius: 8px;
-      position: relative;
-      background: white;
+      background: #fff;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-left: 4px solid #444;
     }}
     .event.favorite {{
       border-color: gold;
       background: #fffbe6;
     }}
-    .favorite-toggle {{
-      position: absolute;
-      top: 0.5em;
-      right: 0.5em;
-      font-size: 1.5em;
-      background: none;
-      border: none;
-      cursor: pointer;
-    }}
-    #controls {{
-      margin: 1em;
-    }}
-    #controls form {{
-      margin-top: 1em;
-    }}
-    #favorites-list {{
-      font-size: 0.9em;
-      color: #666;
-      margin-top: 0.5em;
-    }}
-    #importExport {{
-      margin-top: 1em;
+    .button {{
+      display: inline-block;
+      margin-top: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: #222;
+      color: #fff;
+      border-radius: 3px;
     }}
   </style>
 </head>
 <body>
-  <div id="controls">
-    <label><input type="checkbox" id="showFavoritesOnly"> Show only favorites</label>
+  <h1>{title}</h1>
 
-    <form id="addFavoriteForm">
-      <input type="text" id="manualFavoriteInput" placeholder="Add favorite artist..." required />
-      <button type="submit">Add</button>
-    </form>
-
-    <div id="importExport">
-      <button id="exportFavorites">Export Favorites</button>
-      <input type="file" id="importFavorites" accept=".json" />
-    </div>
-
-    <div id="favorites-list"></div>
+  <input type="text" id="search" placeholder="Search events..." />
+  <select id="venueFilter">
+    <option value="">All Venues</option>
+    {venues_options}
+  </select>
+  <div>
+    <input type="text" id="favoriteInput" placeholder="Add favorite keyword..." />
+    <button onclick="addFavorite()">Add</button>
+    <label><input type="checkbox" id="favoritesOnly" /> Show only favorites</label>
   </div>
 
   <div id="events">
-    {"".join(f'''
-    <div class="event" data-title="{e.title}">
-      <button class="favorite-toggle" data-title="{e.title}">☆</button>
-      <h2>{e.title}</h2>
-      <p>{e.date_str}</p>
-      <a href="{e.tickets}" target="_blank">Buy Tickets</a>
-    </div>''' for e in events)}
+"""
+    for e in events:
+        html += f"""
+    <div class="event" data-title="{e.title.lower()}" data-venue="{e.venue.lower()}">
+      <h2><a href="{e.link}" target="_blank">{e.title}</a></h2>
+      <p class="venue">{e.venue}</p>
+      <p><strong>Date:</strong> {e.date_str}</p>
+      <p><strong>Time:</strong> {e.time}</p>
+      <p><a class="button" href="{e.tickets}" target="_blank">Buy Tickets</a></p>
+    </div>
+"""
+    html += """
   </div>
-
   <script>
-    let favorites = JSON.parse(localStorage.getItem("favorites") || "[]");
+    const searchInput = document.getElementById('search');
+    const venueSelect = document.getElementById('venueFilter');
+    const favoritesOnly = document.getElementById('favoritesOnly');
+    const favoriteInput = document.getElementById('favoriteInput');
+    const events = document.querySelectorAll('.event');
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
 
-    function saveFavorites() {{
-      localStorage.setItem("favorites", JSON.stringify(favorites));
-    }}
+    function saveFavorites() {
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+    }
 
-    function renderFavoritesList() {{
-      const list = document.getElementById("favorites-list");
-      list.textContent = favorites.length ? "Favorites: " + favorites.join(", ") : "No favorites set.";
-    }}
+    function isFavorite(title) {
+      return favorites.some(f => title.includes(f.toLowerCase()));
+    }
 
-    function isFavorite(title) {{
-      const lcTitle = title.toLowerCase();
-      return favorites.some(fav => lcTitle.includes(fav.toLowerCase()));
-    }}
+    function renderEvents() {
+      const searchTerm = searchInput.value.toLowerCase();
+      const venueFilter = venueSelect.value.toLowerCase();
+      const showFavoritesOnly = favoritesOnly.checked;
 
-    function renderEvents() {{
-      const showOnlyFavorites = document.getElementById("showFavoritesOnly").checked;
-      const allEvents = Array.from(document.querySelectorAll(".event"));
+      events.forEach(event => {
+        const title = event.dataset.title;
+        const venue = event.dataset.venue;
+        const isFav = isFavorite(title);
+        event.classList.toggle('favorite', isFav);
+        const matches = title.includes(searchTerm) && (venueFilter === '' || venue === venueFilter);
+        const visible = matches && (!showFavoritesOnly || isFav);
+        event.style.display = visible ? '' : 'none';
+      });
+    }
 
-      allEvents.forEach(div => {{
-        const title = div.dataset.title;
-        const matched = isFavorite(title);
-        div.classList.toggle("favorite", matched);
-        div.style.display = (!showOnlyFavorites || matched) ? "block" : "none";
-        div.querySelector(".favorite-toggle").textContent = matched ? "★" : "☆";
-      }});
-    }}
-
-    function bindFavorites() {{
-      document.querySelectorAll(".favorite-toggle").forEach(button => {{
-        button.addEventListener("click", () => {{
-          const title = button.dataset.title;
-          const guess = prompt("Enter a keyword to favorite based on this title:", title);
-          if (!guess) return;
-          if (!favorites.includes(guess)) {{
-            favorites.push(guess);
-            saveFavorites();
-            renderEvents();
-            renderFavoritesList();
-          }}
-        }});
-      }});
-    }}
-
-    document.getElementById("showFavoritesOnly").addEventListener("change", renderEvents);
-
-    document.getElementById("addFavoriteForm").addEventListener("submit", (e) => {{
-      e.preventDefault();
-      const input = document.getElementById("manualFavoriteInput");
-      const keyword = input.value.trim();
-      if (keyword && !favorites.includes(keyword)) {{
+    function addFavorite() {
+      const keyword = favoriteInput.value.trim().toLowerCase();
+      if (keyword && !favorites.includes(keyword)) {
         favorites.push(keyword);
         saveFavorites();
+        favoriteInput.value = '';
         renderEvents();
-        renderFavoritesList();
-        input.value = "";
-      }}
-    }});
+      }
+    }
 
-    document.getElementById("exportFavorites").addEventListener("click", () => {{
-      const blob = new Blob([JSON.stringify(favorites, null, 2)], {{ type: "application/json" }});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "favorites.json";
-      a.click();
-      URL.revokeObjectURL(url);
-    }});
-
-    document.getElementById("importFavorites").addEventListener("change", (e) => {{
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {{
-        try {{
-          const imported = JSON.parse(reader.result);
-          if (Array.isArray(imported)) {{
-            favorites = imported;
-            saveFavorites();
-            renderEvents();
-            renderFavoritesList();
-          }} else {{
-            alert("Invalid format");
-          }}
-        }} catch {{
-          alert("Invalid JSON file");
-        }}
-      }};
-      reader.readAsText(file);
-    }});
-
-    renderEvents();
-    renderFavoritesList();
-    bindFavorites();
+    searchInput.addEventListener('input', renderEvents);
+    venueSelect.addEventListener('change', renderEvents);
+    favoritesOnly.addEventListener('change', renderEvents);
+    window.addEventListener('load', renderEvents);
   </script>
 </body>
 </html>
 """
-
-
     return html
+
 
 
 
