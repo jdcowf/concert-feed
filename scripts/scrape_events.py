@@ -192,10 +192,29 @@ def generate_html(events, title="Upcoming Concerts"):
       padding: 1rem;
       margin-bottom: 1rem;
       border-left: 4px solid #444;
+      position: relative;
     }}
     .event.favorite {{
       border-color: gold;
       background: #fffbe6;
+    }}
+    .star-button {{
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      color: #ccc;
+      transition: color 0.2s ease-in-out;
+      border: none;
+      background: none;
+      padding: 0;
+      line-height: 1;
+    }}
+    .star-button.favorited {{
+      color: gold;
+      text-shadow: 0 0 3px #daa520;
     }}
     .button {{
       display: inline-block;
@@ -206,6 +225,7 @@ def generate_html(events, title="Upcoming Concerts"):
       border-radius: 3px;
       margin-right: 0.5rem;
       cursor: pointer;
+      text-decoration: none;
     }}
     .button:hover {{
       background: #444;
@@ -268,16 +288,17 @@ def generate_html(events, title="Upcoming Concerts"):
   <div id="events">
 """
     for e in events:
+        escaped_title = e.title.replace('"', '&quot;').replace("'", "\\'")
         html += f"""
     <div class="event" data-title="{e.title.lower()}" data-venue="{e.venue.lower()}">
-      <h2><a href="{e.link}" target="_blank">{e.title}</a></h2>
+      <h2><a href="{e.link}" target="_blank" rel="noopener">{e.title}</a></h2>
       <p class="venue">{e.venue}</p>
       <p><strong>Date:</strong> {e.date_str}</p>
       <p><strong>Time:</strong> {e.time}</p>
       <p>
-        <a class="button" href="{e.tickets}" target="_blank">Buy Tickets</a>
-        <button class="button" onclick="toggleFavoriteFromEvent('{e.title.lower()}')">★ Favorite</button>
+        <a class="button" href="{e.tickets}" target="_blank" rel="noopener">Buy Tickets</a>
       </p>
+      <button class="star-button" aria-label="Toggle favorite" onclick="toggleFavoriteFromEvent(this, '{escaped_title}')">☆</button>
     </div>
 """
     html += """
@@ -310,6 +331,7 @@ def generate_html(events, title="Upcoming Concerts"):
 
       const eventElements = Array.from(document.querySelectorAll('.event'));
 
+      // Sort so favorites appear first
       const sorted = eventElements.sort((a, b) => {
         const aFav = isFavorite(a.dataset.title);
         const bFav = isFavorite(b.dataset.title);
@@ -322,6 +344,19 @@ def generate_html(events, title="Upcoming Concerts"):
         const venue = event.dataset.venue;
         const isFav = isFavorite(title);
         event.classList.toggle('favorite', isFav);
+
+        // Update star button color
+        const starBtn = event.querySelector('.star-button');
+        if (starBtn) {
+          if (isFav) {
+            starBtn.textContent = '★';
+            starBtn.classList.add('favorited');
+          } else {
+            starBtn.textContent = '☆';
+            starBtn.classList.remove('favorited');
+          }
+        }
+
         const matches = title.includes(searchTerm) && (venueFilter === '' || venue === venueFilter);
         const visible = matches && (!showFavoritesOnly || isFav);
         if (visible) {
@@ -361,12 +396,19 @@ def generate_html(events, title="Upcoming Concerts"):
       settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
     }
 
-    function toggleFavoriteFromEvent(title) {
-      let matched = favorites.find(f => title.includes(f));
-      if (!matched) {
-        favorites.push(title);
+    function toggleFavoriteFromEvent(button, title) {
+      // Show prompt for substring selection (default full title)
+      const substr = prompt("Enter keyword to save as favorite (default: full title):", title);
+      if (!substr) return; // canceled
+
+      const cleaned = substr.toLowerCase().trim();
+      const isFav = favorites.includes(cleaned);
+      if (isFav) {
+        // Remove favorite
+        favorites = favorites.filter(f => f !== cleaned);
       } else {
-        favorites = favorites.filter(f => f !== matched);
+        // Add favorite
+        favorites.push(cleaned);
       }
       saveFavorites();
       renderFavoritesList();
@@ -404,6 +446,7 @@ def generate_html(events, title="Upcoming Concerts"):
 </html>
 """
     return html
+
 
 
 
