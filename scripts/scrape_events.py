@@ -158,6 +158,52 @@ def scrape_ritz_events():
             print(f"Error parsing event: {e}")
     return events
 
+
+def scrape_fillmore_charlotte() -> list[EventInfo]:
+    url = "https://www.thefillmorecharlotte.com/shows"
+    headers = {
+        "User-Agent": "Mozilla/5.0"
+    }
+
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    events = []
+
+    for container in soup.select('div[role="group"].chakra-linkbox'):
+        title_tag = container.select_one("p.chakra-text.css-zvlevn")
+        date_tag = container.select_one("p.chakra-text.css-lfdvoo")
+        link_tag = container.select_one("a[href*='ticketmaster.com']")
+        overlay_tag = container.select_one("a.chakra-linkbox__overlay")
+
+        title = title_tag.get_text(strip=True) if title_tag else ""
+        date_str = date_tag.get_text(strip=True) if date_tag else ""
+        tickets = link_tag['href'] if link_tag else "#"
+        link = overlay_tag['href'] if overlay_tag else tickets
+
+        try:
+            date_obj = dt.datetime.strptime(date_str, "%a %b %d, %Y")
+        except ValueError:
+            try:
+                date_obj = dt.datetime.strptime(date_str, "%a %b %d %Y")
+            except Exception:
+                date_obj = dt.datetime.max
+
+        events.append(EventInfo(
+            title=title,
+            link=link,
+            date_str=date_str,
+            date_obj=date_obj,
+            venue="The Fillmore Charlotte",
+            tickets=tickets
+        ))
+
+    return events
+
+
+
+
 def generate_html(events, title="Upcoming Concerts"):
     venues = sorted(set(e.venue for e in events if e.venue))
     venues_options = '\n'.join(f'<option value="{v}">{v}</option>' for v in venues)
@@ -462,7 +508,8 @@ if __name__ == "__main__":
     all_events = list(itertools.chain.from_iterable([
         scrape_catscradle_events(),
         scrape_local506_events(),
-        scrape_ritz_events()
+        scrape_ritz_events(),
+        scrape_fillmore_charlotte(),
     ]))
 
     # Future: Add more venue parsers here
