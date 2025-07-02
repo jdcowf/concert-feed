@@ -160,11 +160,10 @@ def scrape_ritz_events():
 
 
 def scrape_fillmore_charlotte() -> list[EventInfo]:
-    url = "https://www.thefillmorecharlotte.com/shows"
+    url = "https://www.fillmorenc.com/shows"
     headers = {
-        "User-Agent": "Mozilla/5.0"
+        'User-Agent': 'concert-feed'
     }
-
     response = requests.get(url, headers=headers)
     response.raise_for_status()
 
