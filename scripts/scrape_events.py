@@ -9,6 +9,7 @@ from dataclasses import dataclass
 import datetime as dt
 import functools
 import itertools
+import json
 
 @dataclass
 class EventInfo:
@@ -201,24 +202,7 @@ def scrape_fillmore_charlotte() -> list[EventInfo]:
     return events
 
 
-import requests
-import re
-import json
-from bs4 import BeautifulSoup
-from dataclasses import dataclass
-import datetime as dt
-
-@dataclass
-class EventInfo:
-    title: str = ""
-    link: str = "#"
-    date_str: str = ""
-    date_obj: dt.datetime = dt.datetime.max
-    time: str = ""
-    venue: str = ""
-    tickets: str = ""
-
-def scrape_motorco_js_calendar(url="https://motorcomusic.com/calendar/", venue_name="Motorco Music Hall"):
+def scrape_motorco_calendar(url="https://motorcomusic.com/calendar/", venue_name="Motorco Music Hall"):
     resp = requests.get(url, headers={"User-Agent": "concert-feed"})
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
