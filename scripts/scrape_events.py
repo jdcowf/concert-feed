@@ -201,6 +201,46 @@ def scrape_fillmore_charlotte() -> list[EventInfo]:
     return events
 
 
+def scrape_motorco_calendar(url="https://motorcomusic.com/calendar/", venue_name="Motorco Music Hall"):
+    headers = {"User-Agent": "concert-feed"}
+    resp = requests.get(url, headers=headers)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+    events = []
+
+    # Each date cell has a list of events
+    for day_cell in soup.select(".calendar-day"):
+        date_header = day_cell.select_one("time")
+        date_text = date_header.get("datetime", "").strip()
+        # Extract date object
+        try:
+            date_obj = dt.datetime.fromisoformat(date_text).date()
+        except Exception:
+            date_obj = dt.date.max
+
+        for ev in day_cell.select("ul li"):
+            text = ev.get_text(" ", strip=True)  # e.g., "09:00 PM Daft Disko : A French House & Disco Party"
+            parts = text.split(" ", 2)
+            time_str = parts[0] + " " + parts[1] if len(parts) >= 2 else ""
+            title = parts[2] if len(parts) >= 3 else ev.get_text(strip=True)
+
+            link_tag = ev.select_one("a")
+            link = link_tag["href"] if link_tag and "href" in link_tag.attrs else "#"
+
+            event = EventInfo(
+                title=title,
+                link=link,
+                date_str=date_obj.isoformat(),
+                date_obj=dt.datetime.combine(date_obj, dt.datetime.min.time()),
+                time=time_str,
+                venue=venue_name,
+                tickets=link
+            )
+            events.append(event)
+
+    return events
+
 
 
 def generate_html(events, title="Upcoming Concerts"):
@@ -509,6 +549,7 @@ if __name__ == "__main__":
         scrape_local506_events(),
         scrape_ritz_events(),
         scrape_fillmore_charlotte(),
+        scrape_motorco_calendar(),
     ]))
 
     # Future: Add more venue parsers here
