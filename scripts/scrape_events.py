@@ -419,9 +419,20 @@ def generate_html(events, title="Upcoming Concerts"):
       localStorage.setItem('favorites', JSON.stringify(favorites));
     }
 
-    function isFavorite(title) {
-      return favorites.some(f => title.includes(f.toLowerCase()));
+function matchesFavorite(title, favorites) {
+  title = title.toLowerCase();
+  return favorites.some(fav => {
+    fav = fav.toLowerCase();
+    if (fav.length <= 4) {
+      // Match whole word using word boundaries
+      const wordRegex = new RegExp("\\b" + fav + "\\b", "i");
+      return wordRegex.test(title);
+    } else {
+      // Match substring
+      return title.includes(fav);
     }
+  });
+  }
 
     function renderEvents() {
       const searchTerm = searchInput.value.toLowerCase();
@@ -441,7 +452,7 @@ def generate_html(events, title="Upcoming Concerts"):
       sorted.forEach(event => {
         const title = event.dataset.title;
         const venue = event.dataset.venue;
-        const isFav = isFavorite(title);
+        const isFav = matchesFavorite(title, favorites);
         event.classList.toggle('favorite', isFav);
 
         // Update star button color
