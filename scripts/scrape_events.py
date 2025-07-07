@@ -558,13 +558,18 @@ if __name__ == "__main__":
 
     # Parse each venue individually and label the source in the venue field
     
-    all_events = list(itertools.chain.from_iterable([
-        scrape_catscradle_events(),
-        scrape_local506_events(),
-        scrape_ritz_events(),
-        scrape_fillmore_charlotte(),
-        scrape_motorco_calendar(),
-    ]))
+    all_events = []
+    for scraper in [
+            scrape_catscradle_events,
+            scrape_ritz_events,
+            scrape_fillmore_charlotte,
+            scrape_motorco_calendar,
+            scrape_local506_events
+    ]:
+        try:
+            events.extend(scraper())
+        except Exception as e:
+            print(e)
 
     # Future: Add more venue parsers here
     # other_venue_events = parse_other_venue_events()
