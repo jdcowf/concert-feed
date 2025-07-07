@@ -557,8 +557,6 @@ if __name__ == "__main__":
     all_events = []
 
     # Parse each venue individually and label the source in the venue field
-    
-    all_events = []
     for scraper in [
             scrape_catscradle_events,
             scrape_ritz_events,
@@ -567,7 +565,7 @@ if __name__ == "__main__":
             scrape_local506_events
     ]:
         try:
-            events.extend(scraper())
+            all_events.extend(scraper())
         except Exception as e:
             print(e)
 
