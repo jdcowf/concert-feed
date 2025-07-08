@@ -443,8 +443,8 @@ function matchesFavorite(title, favorites) {
 
       // Sort so favorites appear first
       const sorted = eventElements.sort((a, b) => {
-        const aFav = isFavorite(a.dataset.title);
-        const bFav = isFavorite(b.dataset.title);
+        const aFav = matchesFavorite(a.dataset.title, favorites);
+        const bFav = matchesFavorite(b.dataset.title, favorites);
         return (aFav === bFav) ? 0 : aFav ? -1 : 1;
       });
 
