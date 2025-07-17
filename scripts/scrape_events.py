@@ -35,12 +35,12 @@ def scrape_catscradle_events():
 
     month_map = {
         'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+        'May': 5, 'June': 6, 'July': 7, 'Aug': 8,
+        'Sept': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
     }
 
     def parse_event_date(date_str):
-        match = re.search(r'\w{3}, (\w{3}) (\d{1,2})', date_str)
+        match = re.search(r'\w{3}, (\w{3-4}) (\d{1,2})', date_str)
         if not match:
             return datetime.max
         month, day = match.groups()
@@ -87,12 +87,12 @@ def scrape_local506_events():
 
     month_map = {
         'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4,
-        'May': 5, 'Jun': 6, 'Jul': 7, 'Aug': 8,
-        'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+        'May': 5, 'June': 6, 'July': 7, 'Aug': 8,
+        'Sept': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
     }
 
     def parse_event_date(date_str):
-        match = re.search(r'\w{3}, (\w{3}) (\d{1,2})', date_str)
+        match = re.search(r'\w{3}, (\w{3-4}) (\d{1,2})', date_str)
         if not match:
             return datetime.max
         month, day = match.groups()
