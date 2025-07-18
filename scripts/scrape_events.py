@@ -51,7 +51,7 @@ def scrape_catscradle_events():
         match = re.search(r'\w{3}, (\w{3,4}) (\d{1,2})', date_str)
         
         if not match:
-            logging.error(f"Error matching: {date_str}"
+            logging.error(f"Error matching: {date_str}")
             return datetime.max
         month, day = match.groups()
         year = datetime.now().year
@@ -104,7 +104,7 @@ def scrape_local506_events():
     def parse_event_date(date_str):
         match = re.search(r'\w{3}, (\w{3,4}) (\d{1,2})', date_str)
         if not match:
-            logging.error(f"Error matching: {date_str}"
+            logging.error(f"Error matching: {date_str}")
             return datetime.max
         month, day = match.groups()
         year = datetime.now().year
