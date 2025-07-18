@@ -11,6 +11,8 @@ import functools
 import itertools
 import json
 import logging
+from typing import List, Optional
+from urllib.parse import urljoin
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -212,59 +214,172 @@ def scrape_fillmore_charlotte() -> list[EventInfo]:
     return events
 
 
-def scrape_motorco_calendar(url="https://motorcomusic.com/calendar/", venue_name="Motorco Music Hall"):
-    resp = requests.get(url, headers={"User-Agent": "concert-feed"})
-    resp.raise_for_status()
-    soup = BeautifulSoup(resp.text, "html.parser")
+def scrape_motorco_events(url: str = "https://motorcomusic.com/calendar") -> List[EventInfo]:
+    """
+    Scrape calendar events from Motor Co Music website.
+    
+    Args:
+        url: The URL of the Motor Co Music calendar page
+    
+    Returns:
+        List of EventInfo objects containing event details
+    """
+    try:
+        # Fetch the webpage
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        
+        # Parse the HTML content
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Find JavaScript code containing event data
+        events = []
+        script_tags = soup.find_all('script')
+        
+        for script in script_tags:
+            if script.string and 'title:' in script.string and 'start:' in script.string:
+                # Extract event data using regex
+                event_pattern = r'\{\s*title:\s*[\'"]([^\'"]*)[\'"],\s*start:\s*[\'"]([^\'"]*)[\'"],\s*end:\s*[\'"]([^\'"]*)[\'"],\s*url:\s*[\'"]([^\'"]*)[\'"]'
+                matches = re.findall(event_pattern, script.string)
+                
+                for match in matches:
+                    title, start_time, end_time, event_url = match
+                    
+                    # Parse the start time
+                    try:
+                        start_dt = dt.datetime.strptime(start_time, '%Y-%m-%d %H:%M')
+                        date_str = start_dt.strftime('%Y-%m-%d')
+                        time_str = start_dt.strftime('%H:%M')
+                    except ValueError:
+                        # Fallback parsing if format is different
+                        start_dt = dt.datetime.max
+                        date_str = start_time
+                        time_str = ""
+                    
+                    # Create EventInfo object
+                    event_info = EventInfo(
+                        title=title.strip(),
+                        link=urljoin(url, event_url),
+                        date_str=date_str,
+                        date_obj=start_dt,
+                        time=time_str,
+                        venue="Motor Co Music",  # Default venue
+                        tickets=""  # Could be populated by scraping individual event pages
+                    )
+                    
+                    events.append(event_info)
+        
+        # If no events found with the above method, try alternative parsing
+        if not events:
+            events = _alternative_event_parsing(soup, url)
+        
+        # Sort events by date
+        events.sort(key=lambda x: x.date_obj if x.date_obj != dt.datetime.max else dt.datetime.min)
+        
+        return events
+    
+    except requests.RequestException as e:
+        logging.error(f"Error fetching webpage: {e}")
+        return []
+    except Exception as e:
+        logging.error(f"Error parsing events: {e}")
+        return []
 
-    # Find the <script> containing "title:" and "start:"
-    script = None
-    for tag in soup.find_all("script"):
-        text = tag.string or ""
-        if "title:" in text and "start:" in text:
-            script = text
-            break
-    if not script:
-        raise RuntimeError("Couldn't find events JS on page")
-
-    # Extract the JS array portion
-    m = re.search(r'events\s*=\s*\[(.+?)\];', script, re.S)
-    if not m:
-        raise RuntimeError("Couldn't isolate events array")
-    js_array = "[" + m.group(1) + "]"
-
-    # Convert to valid JSON
-    json_data = js_array.replace("'", '"')
-    json_data = re.sub(r'(\w+):', r'"\1":', json_data)  # quote unquoted keys
-
-    events_parsed = json.loads(json_data)
-
+def _alternative_event_parsing(soup: BeautifulSoup, base_url: str) -> List[EventInfo]:
+    """
+    Alternative parsing method in case the primary method fails.
+    """
     events = []
-    for ev in events_parsed:
-        title = ev.get("title","").strip()
-        start = ev.get("start","")
-        link = ev.get("url", "#")
-        date_str = start.replace("T"," ").strip()
-        try:
-            dt_obj = dt.datetime.fromisoformat(start)
-            time_str = dt_obj.strftime("%H:%M")
-            date_obj = dt_obj
-        except:
-            logging.exception(f"Error paraing {start}")
-            time_str = ""
+    
+    # Look for alternative event containers
+    event_containers = soup.find_all(['div', 'article'], class_=re.compile(r'event|calendar'))
+    
+    for container in event_containers:
+        # Extract basic event information
+        title_elem = container.find(['h1', 'h2', 'h3', 'h4'], class_=re.compile(r'title|event'))
+        link_elem = container.find('a', href=True)
+        date_elem = container.find(['time', 'span'], class_=re.compile(r'date|time'))
+        
+        if title_elem and link_elem:
+            title = title_elem.get_text(strip=True)
+            link = urljoin(base_url, link_elem['href'])
+            
+            # Try to extract date information
+            date_str = ""
             date_obj = dt.datetime.max
-
-        events.append(EventInfo(
-            title=title,
-            link=link,
-            date_str=date_str,
-            date_obj=date_obj,
-            time=time_str,
-            venue=venue_name,
-            tickets=link
-        ))
+            time_str = ""
+            
+            if date_elem:
+                date_text = date_elem.get_text(strip=True)
+                # Try to parse various date formats
+                for fmt in ['%Y-%m-%d %H:%M', '%Y-%m-%d', '%m/%d/%Y', '%B %d, %Y']:
+                    try:
+                        date_obj = dt.datetime.strptime(date_text, fmt)
+                        date_str = date_obj.strftime('%Y-%m-%d')
+                        time_str = date_obj.strftime('%H:%M') if '%H:%M' in fmt else ""
+                        break
+                    except ValueError:
+                        continue
+            
+            event_info = EventInfo(
+                title=title,
+                link=link,
+                date_str=date_str,
+                date_obj=date_obj,
+                time=time_str,
+                venue="Motor Co Music",
+                tickets=""
+            )
+            
+            events.append(event_info)
+    
     return events
 
+def get_event_details(event_url: str) -> dict:
+    """
+    Scrape additional details from an individual event page.
+    
+    Args:
+        event_url: URL of the specific event page
+    
+    Returns:
+        Dictionary containing additional event details
+    """
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(event_url, headers=headers)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # Extract additional details
+        details = {
+            'description': '',
+            'price': '',
+            'venue_details': '',
+            'tickets_link': ''
+        }
+        
+        # Look for ticket information
+        ticket_elem = soup.find('a', href=re.compile(r'ticket|buy'))
+        if ticket_elem:
+            details['tickets_link'] = ticket_elem.get('href', '')
+        
+        # Look for price information
+        price_elem = soup.find(['span', 'div'], class_=re.compile(r'price|cost'))
+        if price_elem:
+            details['price'] = price_elem.get_text(strip=True)
+        
+        return details
+    
+    except Exception as e:
+        logging.error(f"Error getting event details: {e}")
+        return {}
 
 
 
