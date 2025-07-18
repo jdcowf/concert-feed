@@ -698,7 +698,7 @@ if __name__ == "__main__":
             scrape_catscradle_events,
             scrape_ritz_events,
             scrape_fillmore_charlotte,
-            scrape_motorco_calendar,
+            scrape_motorco_events,
             scrape_local506_events
     ]:
         try:
