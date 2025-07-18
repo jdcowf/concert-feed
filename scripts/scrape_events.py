@@ -10,6 +10,14 @@ import datetime as dt
 import functools
 import itertools
 import json
+import logging
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s [%(levelname)s] %(name)s %(filename)s:%(lineno)d - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 
 @dataclass
 class EventInfo:
@@ -40,8 +48,10 @@ def scrape_catscradle_events():
     }
 
     def parse_event_date(date_str):
-        match = re.search(r'\w{3}, (\w{3-4}) (\d{1,2})', date_str)
+        match = re.search(r'\w{3}, (\w{3,4}) (\d{1,2})', date_str)
+        
         if not match:
+            logging.error(f"Error matching: {date_str}"
             return datetime.max
         month, day = match.groups()
         year = datetime.now().year
@@ -92,8 +102,9 @@ def scrape_local506_events():
     }
 
     def parse_event_date(date_str):
-        match = re.search(r'\w{3}, (\w{3-4}) (\d{1,2})', date_str)
+        match = re.search(r'\w{3}, (\w{3,4}) (\d{1,2})', date_str)
         if not match:
+            logging.error(f"Error matching: {date_str}"
             return datetime.max
         month, day = match.groups()
         year = datetime.now().year
@@ -137,9 +148,6 @@ def scrape_ritz_events():
     def parse_event_date(date_str):
         return dt.datetime.strptime(date_str, "%a %b %d, %Y")
 
-
-
-
     events = []
     for group in soup.find_all('div', class_='chakra-linkbox'):
         try:
@@ -156,7 +164,7 @@ def scrape_ritz_events():
 
             events.append(EventInfo(**event))
         except Exception as e:
-            print(f"Error parsing event: {e}")
+            logging.exception(f"Error parsing event")
     return events
 
 
@@ -185,9 +193,11 @@ def scrape_fillmore_charlotte() -> list[EventInfo]:
         try:
             date_obj = dt.datetime.strptime(date_str, "%a %b %d, %Y")
         except ValueError:
+            logging.exception("")
             try:
                 date_obj = dt.datetime.strptime(date_str, "%a %b %d %Y")
             except Exception:
+                logging.exception("")
                 date_obj = dt.datetime.max
 
         events.append(EventInfo(
@@ -240,6 +250,7 @@ def scrape_motorco_calendar(url="https://motorcomusic.com/calendar/", venue_name
             time_str = dt_obj.strftime("%H:%M")
             date_obj = dt_obj
         except:
+            logging.exception(f"Error paraing {start}")
             time_str = ""
             date_obj = dt.datetime.max
 
@@ -578,7 +589,7 @@ if __name__ == "__main__":
         try:
             all_events.extend(scraper())
         except Exception as e:
-            print(e)
+            logging.exception("unhandled exception in parser")
 
     # Future: Add more venue parsers here
     # other_venue_events = parse_other_venue_events()
@@ -598,4 +609,4 @@ if __name__ == "__main__":
     dest.parent.mkdir(exist_ok=True, parents=True)
     with dest.open('w') as f:
         f.write(html_content)
-    print(f"✅ Saved {len(all_events)} events to {dest}")
+    logging.info(f"✅ Saved {len(all_events)} events to {dest}")
