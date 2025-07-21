@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{TITLE}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #2c3e50;
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 2rem;
+      color: #34495e;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .controls {
+      background: rgba(255, 255, 255, 0.9);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .controls-row:last-child {
+      margin-bottom: 0;
+    }
+
+    #search, #venueFilter {
+      padding: 0.75rem 1rem;
+      font-size: 1rem;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      background: white;
+      transition: all 0.3s ease;
+      min-width: 200px;
+      flex: 1;
+    }
+
+    #search:focus, #venueFilter:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    .settings-toggle {
+      background: #34495e;
+      color: white;
+      padding: 0.75rem 1rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .settings-toggle:hover {
+      background: #2c3e50;
+      transform: translateY(-1px);
+    }
+
+    .event {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 12px;
+      border-left: 4px solid #95a5a6;
+      position: relative;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      backdrop-filter: blur(10px);
+    }
+
+    .event:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+    .event.favorite {
+      border-left-color: #f39c12;
+      background: rgba(255, 248, 220, 0.95);
+    }
+
+    .event h2 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1.4rem;
+      font-weight: 600;
+    }
+
+    .event h2 a {
+      color: #2c3e50;
+      text-decoration: none;
+      transition: color 0.3s ease;
+    }
+
+    .event h2 a:hover {
+      color: #3498db;
+    }
+
+    .venue {
+      color: #7f8c8d;
+      margin: 0 0 1rem 0;
+      font-weight: 500;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .event-details {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #34495e;
+    }
+
+    .date, .time {
+      background: #ecf0f1;
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    .event-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.6rem 1.2rem;
+      background: #2c3e50;
+      color: white;
+      font-size: 0.9rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .button:hover {
+      background: #34495e;
+      transform: translateY(-1px);
+    }
+
+    .star-button {
+      font-size: 1.5rem;
+      cursor: pointer;
+      user-select: none;
+      color: #bdc3c7;
+      transition: all 0.3s ease;
+      border: none;
+      background: none;
+      padding: 0.5rem;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .star-button:hover {
+      background: rgba(0,0,0,0.05);
+      transform: scale(1.1);
+    }
+
+    .star-button.favorited {
+      color: #f39c12;
+      text-shadow: 0 0 8px rgba(243, 156, 18, 0.3);
+    }
+
+    .settings {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-top: 1rem;
+      max-width: 600px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .settings h2 {
+      margin: 0 0 1rem 0;
+      color: #2c3e50;
+      font-size: 1.2rem;
+    }
+
+    .settings ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1rem 0;
+    }
+
+    .settings li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #ecf0f1;
+    }
+
+    .settings li:last-child {
+      border-bottom: none;
+    }
+
+    .settings input[type="text"], .settings textarea {
+      padding: 0.5rem;
+      border: 2px solid #e1e8ed;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+
+    .settings input[type="text"]:focus, .settings textarea:focus {
+      outline: none;
+      border-color: #3498db;
+    }
+
+    .settings button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .settings button:hover {
+      background: #2980b9;
+    }
+
+    .settings button.remove {
+      background: #e74c3c;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .settings button.remove:hover {
+      background: #c0392b;
+    }
+
+    .add-favorite-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .add-favorite-row input {
+      flex: 1;
+    }
+
+    .no-events {
+      text-align: center;
+      padding: 3rem;
+      color: #7f8c8d;
+      font-style: italic;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .controls-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      #search, #venueFilter {
+        min-width: unset;
+      }
+
+      .event-actions {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .button {
+        text-align: center;
+      }
+
+      .star-button {
+        align-self: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>{{TITLE}}</h1>
+
+    <div class="controls">
+      <div class="controls-row">
+        <input type="text" id="search" placeholder="Search events..." />
+        <select id="venueFilter">
+          <option value="">All Venues</option>
+          {{VENUES_OPTIONS}}
+        </select>
+      </div>
+      <div class="controls-row">
+        <label class="checkbox-container">
+          <input type="checkbox" id="favoritesOnly" />
+          <span>Show only favorites</span>
+        </label>
+        <button class="settings-toggle" onclick="toggleSettings()">
+          <span>⚙️</span>
+          <span>Favorites Settings</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="settingsPanel" class="settings" style="display:none;">
+      <h2>Favorite Keywords</h2>
+      <div class="add-favorite-row">
+        <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." />
+        <button onclick="addFavorite()">Add</button>
+      </div>
+      <ul id="favoritesList"></ul>
+      <h3>Import/Export</h3>
+      <textarea id="favoritesJson" rows="4" style="width:100%; margin-bottom: 0.5rem;"></textarea>
+      <div style="display: flex; gap: 0.5rem;">
+        <button onclick="exportFavorites()">Export</button>
+        <button onclick="importFavorites()">Import</button>
+      </div>
+    </div>
+
+    <div id="events">
+      {{EVENTS}}
+    </div>
+
+    <div id="noEventsMessage" class="no-events" style="display: none;">
+      <p>No events match your current filters.</p>
+    </div>
+  </div>
+
+  <script>
+    const searchInput = document.getElementById('search');
+    const venueSelect = document.getElementById('venueFilter');
+    const favoritesOnly = document.getElementById('favoritesOnly');
+    const favoritesList = document.getElementById('favoritesList');
+    const newFavoriteInput = document.getElementById('newFavoriteInput');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const favoritesJson = document.getElementById('favoritesJson');
+    const eventsContainer = document.getElementById('events');
+    const noEventsMessage = document.getElementById('noEventsMessage');
+
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let allEventElements = [];
+
+    function saveFavorites() {
+      localStorage.setItem('favorites', JSON.stringify(favorites));
+    }
+
+    function matchesFavorite(title, favorites) {
+      title = title.toLowerCase();
+      return favorites.some(fav => {
+        fav = fav.toLowerCase();
+        if (fav.length <= 4) {
+          // Match whole word using word boundaries
+          const wordRegex = new RegExp("\\b" + fav.replace(/[.*+?^${}()|[\]\\]/g, '\\      <h3>Import/Export</h3>
+      <textarea id="favoritesJson" rows="4" style="width:100%; margin-bottom: 0.5') + "\\b", "i");
+          return wordRegex.test(title);
+        } else {
+          // Match substring
+          return title.includes(fav);
+        }
+      });
+    }
+
+    function renderEvents() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const venueFilter = venueSelect.value.toLowerCase();
+      const showFavoritesOnly = favoritesOnly.checked;
+
+      // Clear the events container
+      eventsContainer.innerHTML = '';
+      
+      // Filter and sort events
+      const filteredEvents = allEventElements.filter(event => {
+        const title = event.dataset.title;
+        const venue = event.dataset.venue;
+        const isFav = matchesFavorite(title, favorites);
+        
+        // Update favorite styling
+        event.classList.toggle('favorite', isFav);
+        const starBtn = event.querySelector('.star-button');
+        if (starBtn) {
+          if (isFav) {
+            starBtn.textContent = '★';
+            starBtn.classList.add('favorited');
+          } else {
+            starBtn.textContent = '☆';
+            starBtn.classList.remove('favorited');
+          }
+        }
+
+        // Apply filters
+        const matchesSearch = !searchTerm || title.includes(searchTerm);
+        const matchesVenue = !venueFilter || venue === venueFilter;
+        const matchesFavorites = !showFavoritesOnly || isFav;
+
+        return matchesSearch && matchesVenue && matchesFavorites;
+      });
+
+      // Sort so favorites appear first
+      filteredEvents.sort((a, b) => {
+        const aFav = matchesFavorite(a.dataset.title, favorites);
+        const bFav = matchesFavorite(b.dataset.title, favorites);
+        return (aFav === bFav) ? 0 : aFav ? -1 : 1;
+      });
+
+      // Show/hide events and no results message
+      if (filteredEvents.length === 0) {
+        noEventsMessage.style.display = 'block';
+      } else {
+        noEventsMessage.style.display = 'none';
+        filteredEvents.forEach(event => {
+          eventsContainer.appendChild(event);
+        });
+      }
+    }
+
+    function addFavorite() {
+      const keyword = newFavoriteInput.value.trim().toLowerCase();
+      if (keyword && !favorites.includes(keyword)) {
+        favorites.push(keyword);
+        newFavoriteInput.value = '';
+        saveFavorites();
+        renderFavoritesList();
+        renderEvents();
+      }
+    }
+
+    function removeFavorite(keyword) {
+      favorites = favorites.filter(f => f !== keyword);
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function renderFavoritesList() {
+      favoritesList.innerHTML = '';
+      favorites.forEach(fav => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span>${fav}</span> <button class="remove" onclick="removeFavorite('${fav.replace(/'/g, "\\'")}')">Remove</button>`;
+        favoritesList.appendChild(li);
+      });
+    }
+
+    function toggleSettings() {
+      settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function toggleFavoriteFromEvent(button, title) {
+      // Show prompt for substring selection (default full title)
+      const substr = prompt("Enter keyword to save as favorite (default: full title):", title);
+      if (substr === null) return; // canceled
+      if (substr === '') return; // empty input
+
+      const cleaned = substr.toLowerCase().trim();
+      const isFav = favorites.includes(cleaned);
+      if (isFav) {
+        // Remove favorite
+        favorites = favorites.filter(f => f !== cleaned);
+      } else {
+        // Add favorite
+        favorites.push(cleaned);
+      }
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function exportFavorites() {
+      favoritesJson.value = JSON.stringify(favorites, null, 2);
+    }
+
+    function importFavorites() {
+      try {
+        const imported = JSON.parse(favoritesJson.value);
+        if (Array.isArray(imported)) {
+          favorites = imported.map(f => f.toLowerCase().trim()).filter(Boolean);
+          saveFavorites();
+          renderFavoritesList();
+          renderEvents();
+          alert('Favorites imported successfully!');
+        } else {
+          alert('Invalid format: Expected an array of strings');
+        }
+      } catch (e) {
+        alert("Invalid JSON format");
+      }
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', renderEvents);
+    venueSelect.addEventListener('change', renderEvents);
+    favoritesOnly.addEventListener('change', renderEvents);
+    
+    // Allow adding favorites with Enter key
+    newFavoriteInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addFavorite();
+      }
+    });
+
+    // Initialize on page load
+    window.addEventListener('load', () => {
+      // Cache all event elements
+      allEventElements = Array.from(document.querySelectorAll('.event'));
+      
+      renderFavoritesList();
+      renderEvents();
+    });
+  </script>
+</body>
+</html>
