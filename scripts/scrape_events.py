@@ -551,7 +551,7 @@ function matchesFavorite(title, favorites) {
     fav = fav.toLowerCase();
     if (fav.length <= 4) {
       // Match whole word using word boundaries
-      const wordRegex = new RegExp("\\b" + fav + "\\b", "i");
+      const wordRegex = new RegExp("\\\\b" + fav + "\\\\b", "i");
       return wordRegex.test(title);
     } else {
       // Match substring
