@@ -25,11 +25,15 @@ logging.basicConfig(
 class EventInfo:
     title: str = ""
     link: str = "#"
-    date_str: str = ""
     date_obj: dt.datetime = dt.datetime.max
     time: str = ""
     venue: str = ""
     tickets: str = ""
+
+    @property
+    def date_str(self):
+        return self.date_obj.strftime("%A %B %d %Y")
+    
 
 
 def scrape_catscradle_events():
@@ -75,7 +79,6 @@ def scrape_catscradle_events():
         event_data = {
             'title': title.text.strip() if title else 'Untitled',
             'link': link['href'] if link and link.has_attr('href') else '#',
-            'date_str': date_str.text.strip() if date_str else 'TBA',
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
             'venue': venue.text.strip() if venue else '',
@@ -126,7 +129,6 @@ def scrape_local506_events():
         event_data = {
             'title': title.text.strip() if title else 'Untitled',
             'link': link['href'] if link and link.has_attr('href') else '#',
-            'date_str': date_str.text.strip() if date_str else 'TBA',
             'date_obj': parse_event_date(date_str.text.strip()) if date_str else datetime.max,
             'time': time_details.text.strip() if time_details else '',
             'venue': venue.text.strip() if venue else 'Local 506',
@@ -158,7 +160,6 @@ def scrape_ritz_events():
             link_tag = group.select_one('a.chakra-button[href*="ticketmaster.com"]')
             event = {
                 'title': title_tag.text.strip(),
-                'date_str': date_tag.text.strip(),
                 'date_obj': parse_event_date(date_tag.text.strip()) if date_tag else datetime.max,
                 'tickets': link_tag['href'],
                 'venue': "The Ritz Raleigh"
@@ -205,7 +206,6 @@ def scrape_fillmore_charlotte() -> list[EventInfo]:
         events.append(EventInfo(
             title=title,
             link=link,
-            date_str=date_str,
             date_obj=date_obj,
             venue="The Fillmore Charlotte",
             tickets=tickets
@@ -263,7 +263,6 @@ def scrape_motorco_events(url: str = "https://motorcomusic.com/calendar") -> Lis
                     event_info = EventInfo(
                         title=title.strip(),
                         link=urljoin(url, event_url),
-                        date_str=date_str,
                         date_obj=start_dt,
                         time=time_str,
                         venue="Motor Co Music",  # Default venue
@@ -327,7 +326,6 @@ def _alternative_event_parsing(soup: BeautifulSoup, base_url: str) -> List[Event
             event_info = EventInfo(
                 title=title,
                 link=link,
-                date_str=date_str,
                 date_obj=date_obj,
                 time=time_str,
                 venue="Motor Co Music",
