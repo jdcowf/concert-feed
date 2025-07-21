@@ -309,6 +309,15 @@
       font-style: italic;
     }
 
+    .storage-warning {
+      background: #f39c12;
+      color: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      display: none;
+    }
+
     @media (max-width: 768px) {
       body {
         padding: 1rem;
@@ -346,6 +355,10 @@
 <body>
   <div class="container">
     <h1>{{TITLE}}</h1>
+
+    <div id="storageWarning" class="storage-warning">
+      <strong>Note:</strong> Favorites are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
+    </div>
 
     <div class="controls">
       <div class="controls-row">
@@ -401,26 +414,66 @@
     const favoritesJson = document.getElementById('favoritesJson');
     const eventsContainer = document.getElementById('events');
     const noEventsMessage = document.getElementById('noEventsMessage');
+    const storageWarning = document.getElementById('storageWarning');
 
-    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let favorites = [];
     let allEventElements = [];
+    let storageAvailable = false;
+
+    // Check if localStorage is available and working
+    function checkStorageAvailability() {
+      try {
+        const test = 'test';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        storageAvailable = true;
+        // Load existing favorites
+        const stored = localStorage.getItem('favorites');
+        if (stored) {
+          favorites = JSON.parse(stored);
+        }
+      } catch (e) {
+        storageAvailable = false;
+        storageWarning.style.display = 'block';
+        console.warn('localStorage not available, favorites will be session-only');
+      }
+    }
 
     function saveFavorites() {
-      localStorage.setItem('favorites', JSON.stringify(favorites));
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+        } catch (e) {
+          console.warn('Failed to save favorites to localStorage');
+        }
+      }
+    }
+
+    function escapeRegex(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     function matchesFavorite(title, favorites) {
+      if (!favorites || favorites.length === 0) return false;
+      
       title = title.toLowerCase();
       return favorites.some(fav => {
-        fav = fav.toLowerCase();
-        if (fav.length <= 4) {
-          // Match whole word using word boundaries
-          const wordRegex = new RegExp("\\b" + fav.replace(/[.*+?^${}()|[\]\\]/g, '\\      <h3>Import/Export</h3>
-      <textarea id="favoritesJson" rows="4" style="width:100%; margin-bottom: 0.5') + "\\b", "i");
-          return wordRegex.test(title);
-        } else {
-          // Match substring
-          return title.includes(fav);
+        try {
+          fav = fav.toLowerCase().trim();
+          if (!fav) return false;
+          
+          if (fav.length <= 4) {
+            // Match whole word using word boundaries
+            const escapedFav = escapeRegex(fav);
+            const wordRegex = new RegExp("\\b" + escapedFav + "\\b", "i");
+            return wordRegex.test(title);
+          } else {
+            // Match substring
+            return title.includes(fav);
+          }
+        } catch (e) {
+          console.warn('Error matching favorite:', fav, e);
+          return false;
         }
       });
     }
@@ -435,8 +488,8 @@
       
       // Filter and sort events
       const filteredEvents = allEventElements.filter(event => {
-        const title = event.dataset.title;
-        const venue = event.dataset.venue;
+        const title = event.dataset.title || '';
+        const venue = event.dataset.venue || '';
         const isFav = matchesFavorite(title, favorites);
         
         // Update favorite styling
@@ -462,8 +515,8 @@
 
       // Sort so favorites appear first
       filteredEvents.sort((a, b) => {
-        const aFav = matchesFavorite(a.dataset.title, favorites);
-        const bFav = matchesFavorite(b.dataset.title, favorites);
+        const aFav = matchesFavorite(a.dataset.title || '', favorites);
+        const bFav = matchesFavorite(b.dataset.title || '', favorites);
         return (aFav === bFav) ? 0 : aFav ? -1 : 1;
       });
 
@@ -500,7 +553,16 @@
       favoritesList.innerHTML = '';
       favorites.forEach(fav => {
         const li = document.createElement('li');
-        li.innerHTML = `<span>${fav}</span> <button class="remove" onclick="removeFavorite('${fav.replace(/'/g, "\\'")}')">Remove</button>`;
+        const span = document.createElement('span');
+        span.textContent = fav;
+        
+        const button = document.createElement('button');
+        button.className = 'remove';
+        button.textContent = 'Remove';
+        button.onclick = () => removeFavorite(fav);
+        
+        li.appendChild(span);
+        li.appendChild(button);
         favoritesList.appendChild(li);
       });
     }
@@ -537,7 +599,7 @@
       try {
         const imported = JSON.parse(favoritesJson.value);
         if (Array.isArray(imported)) {
-          favorites = imported.map(f => f.toLowerCase().trim()).filter(Boolean);
+          favorites = imported.map(f => String(f).toLowerCase().trim()).filter(Boolean);
           saveFavorites();
           renderFavoritesList();
           renderEvents();
@@ -546,7 +608,7 @@
           alert('Invalid format: Expected an array of strings');
         }
       } catch (e) {
-        alert("Invalid JSON format");
+        alert("Invalid JSON format: " + e.message);
       }
     }
 
@@ -564,6 +626,9 @@
 
     // Initialize on page load
     window.addEventListener('load', () => {
+      // Check storage availability first
+      checkStorageAvailability();
+      
       // Cache all event elements
       allEventElements = Array.from(document.querySelectorAll('.event'));
       
