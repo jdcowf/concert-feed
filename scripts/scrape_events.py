@@ -378,7 +378,7 @@ def get_event_details(event_url: str) -> dict:
 
 def generate_html(events, title="Upcoming Concerts"):
     """Generate HTML content using external template"""
-    template_path = Path('template.html')
+    template_path = Path(__file__).parent / 'template.html')
     
     if not template_path.exists():
         logging.error(f"Template file not found: {template_path}")
