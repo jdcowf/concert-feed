@@ -157,7 +157,7 @@ def scrape_ritz_events():
         try:
             title_tag = group.select_one('p.chakra-text.css-zvlevn')
             date_tag = group.select_one('p.chakra-text.css-aqbsuf')
-            link_tag = group.select_one('a.chakra-button[href*="ticketmaster.com"]')
+            link_tag = group.select_one('a.chakra-button.css-1d2qex5')
             event = {
                 'title': title_tag.text.strip(),
                 'date_obj': parse_event_date(date_tag.text.strip()) if date_tag else datetime.max,
