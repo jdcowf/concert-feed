@@ -114,6 +114,12 @@
       transition: all 0.3s ease;
       box-shadow: 0 4px 15px rgba(0,0,0,0.1);
       backdrop-filter: blur(10px);
+      cursor: grab;
+      overflow: hidden;
+    }
+
+    .event:active {
+      cursor: grabbing;
     }
 
     .event:hover {
@@ -124,6 +130,15 @@
     .event.favorite {
       border-left-color: #f39c12;
       background: rgba(255, 248, 220, 0.95);
+    }
+
+    .event.hidden {
+      opacity: 0.5;
+      background: rgba(255, 255, 255, 0.7);
+    }
+
+    .event.swiping {
+      z-index: 10;
     }
 
     .event h2 {
@@ -217,6 +232,43 @@
     .star-button.favorited {
       color: #f39c12;
       text-shadow: 0 0 8px rgba(243, 156, 18, 0.3);
+    }
+
+    .swipe-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 2rem;
+      color: #e74c3c;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 5;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .swipe-indicator.left {
+      right: 20px;
+    }
+
+    .swipe-indicator.right {
+      left: 20px;
+    }
+
+    .hide-button {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      margin-left: 0.5rem;
+    }
+
+    .hide-button:hover {
+      background: #c0392b;
     }
 
     .settings {
@@ -318,6 +370,17 @@
       display: none;
     }
 
+    .swipe-hint {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+      padding: 0.75rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      text-align: center;
+      border: 1px solid rgba(52, 152, 219, 0.2);
+    }
+
     @media (max-width: 768px) {
       body {
         padding: 1rem;
@@ -357,7 +420,11 @@
     <h1>{{TITLE}}</h1>
 
     <div id="storageWarning" class="storage-warning">
-      <strong>Note:</strong> Favorites are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
+      <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
+    </div>
+
+    <div class="swipe-hint">
+      💡 <strong>Tip:</strong> Swipe left or right on event cards to hide them, or use the hide button
     </div>
 
     <div class="controls">
@@ -372,6 +439,10 @@
         <label class="checkbox-container">
           <input type="checkbox" id="favoritesOnly" />
           <span>Show only favorites</span>
+        </label>
+        <label class="checkbox-container">
+          <input type="checkbox" id="showHidden" />
+          <span>Show hidden events</span>
         </label>
         <button class="settings-toggle" onclick="toggleSettings()">
           <span>⚙️</span>
@@ -408,6 +479,7 @@
     const searchInput = document.getElementById('search');
     const venueSelect = document.getElementById('venueFilter');
     const favoritesOnly = document.getElementById('favoritesOnly');
+    const showHidden = document.getElementById('showHidden');
     const favoritesList = document.getElementById('favoritesList');
     const newFavoriteInput = document.getElementById('newFavoriteInput');
     const settingsPanel = document.getElementById('settingsPanel');
@@ -417,8 +489,19 @@
     const storageWarning = document.getElementById('storageWarning');
 
     let favorites = [];
+    let hiddenEvents = [];
     let allEventElements = [];
     let storageAvailable = false;
+
+    // Touch/swipe handling variables
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let swipeThreshold = 100;
+    let swipeRestrictY = 50;
+    let isDragging = false;
+    let currentSwipeElement = null;
 
     // Check if localStorage is available and working
     function checkStorageAvailability() {
@@ -427,15 +510,20 @@
         localStorage.setItem(test, test);
         localStorage.removeItem(test);
         storageAvailable = true;
-        // Load existing favorites
-        const stored = localStorage.getItem('favorites');
-        if (stored) {
-          favorites = JSON.parse(stored);
+        // Load existing data
+        const storedFavorites = localStorage.getItem('favorites');
+        const storedHidden = localStorage.getItem('hiddenEvents');
+        if (storedFavorites) {
+          favorites = JSON.parse(storedFavorites);
+        }
+        if (storedHidden) {
+          hiddenEvents = JSON.parse(storedHidden);
+          cleanupHiddenEvents();
         }
       } catch (e) {
         storageAvailable = false;
         storageWarning.style.display = 'block';
-        console.warn('localStorage not available, favorites will be session-only');
+        console.warn('localStorage not available, favorites and hidden events will be session-only');
       }
     }
 
@@ -447,6 +535,77 @@
           console.warn('Failed to save favorites to localStorage');
         }
       }
+    }
+
+    function saveHiddenEvents() {
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('hiddenEvents', JSON.stringify(hiddenEvents));
+        } catch (e) {
+          console.warn('Failed to save hidden events to localStorage');
+        }
+      }
+    }
+
+    function cleanupHiddenEvents() {
+      const now = new Date();
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(hiddenEvent => {
+        try {
+          const eventDate = new Date(hiddenEvent.date);
+          return eventDate >= now;
+        } catch (e) {
+          // If date parsing fails, keep the event to be safe
+          return true;
+        }
+      });
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+      }
+    }
+
+    function isEventHidden(eventId, eventDate) {
+      return hiddenEvents.some(hidden => 
+        hidden.id === eventId || 
+        (hidden.title && hidden.date && hidden.title === getEventTitle(eventId) && hidden.date === eventDate)
+      );
+    }
+
+    function getEventTitle(eventId) {
+      const element = document.querySelector(`[data-event-id="${eventId}"]`);
+      return element ? (element.dataset.title || '') : '';
+    }
+
+    function getEventDate(eventId) {
+      const element = document.querySelector(`[data-event-id="${eventId}"]`);
+      return element ? (element.dataset.date || '') : '';
+    }
+
+    function hideEvent(eventElement) {
+      const eventId = eventElement.dataset.eventId || '';
+      const title = eventElement.dataset.title || '';
+      const date = eventElement.dataset.date || '';
+      
+      const hiddenEvent = {
+        id: eventId,
+        title: title,
+        date: date,
+        timestamp: Date.now()
+      };
+      
+      if (!hiddenEvents.some(h => h.id === eventId && h.title === title)) {
+        hiddenEvents.push(hiddenEvent);
+        saveHiddenEvents();
+      }
+      
+      renderEvents();
+    }
+
+    function unhideEvent(eventId, title) {
+      hiddenEvents = hiddenEvents.filter(h => !(h.id === eventId || h.title === title));
+      saveHiddenEvents();
+      renderEvents();
     }
 
     function escapeRegex(string) {
@@ -478,10 +637,161 @@
       });
     }
 
+    function addSwipeHandlers(eventElement) {
+      // Add swipe indicator
+      const leftIndicator = document.createElement('div');
+      leftIndicator.className = 'swipe-indicator left';
+      leftIndicator.innerHTML = '👋';
+      
+      const rightIndicator = document.createElement('div');
+      rightIndicator.className = 'swipe-indicator right';
+      rightIndicator.innerHTML = '👋';
+      
+      eventElement.appendChild(leftIndicator);
+      eventElement.appendChild(rightIndicator);
+
+      // Add hide button to event actions
+      const eventActions = eventElement.querySelector('.event-actions');
+      if (eventActions) {
+        const hideButton = document.createElement('button');
+        hideButton.className = 'hide-button';
+        hideButton.innerHTML = '🗑️ Hide';
+        hideButton.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          hideEvent(eventElement);
+        };
+        eventActions.appendChild(hideButton);
+      }
+
+      // Touch events
+      eventElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      eventElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      eventElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+      // Mouse events for desktop testing
+      eventElement.addEventListener('mousedown', handleMouseStart);
+      eventElement.addEventListener('mousemove', handleMouseMove);
+      eventElement.addEventListener('mouseup', handleMouseEnd);
+      eventElement.addEventListener('mouseleave', handleMouseEnd);
+    }
+
+    function handleTouchStart(e) {
+      const touch = e.touches[0];
+      startSwipe(touch.clientX, touch.clientY, e.currentTarget);
+    }
+
+    function handleTouchMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      moveSwipe(touch.clientX, touch.clientY);
+    }
+
+    function handleTouchEnd(e) {
+      endSwipe();
+    }
+
+    function handleMouseStart(e) {
+      startSwipe(e.clientX, e.clientY, e.currentTarget);
+    }
+
+    function handleMouseMove(e) {
+      if (!isDragging) return;
+      moveSwipe(e.clientX, e.clientY);
+    }
+
+    function handleMouseEnd(e) {
+      endSwipe();
+    }
+
+    function startSwipe(x, y, element) {
+      touchStartX = x;
+      touchStartY = y;
+      currentX = x;
+      currentY = y;
+      isDragging = true;
+      currentSwipeElement = element;
+      element.classList.add('swiping');
+    }
+
+    function moveSwipe(x, y) {
+      if (!isDragging || !currentSwipeElement) return;
+
+      currentX = x;
+      currentY = y;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      // If vertical movement is too much, cancel horizontal swipe
+      if (deltaY > swipeRestrictY) {
+        return;
+      }
+
+      // Update visual feedback
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      
+      if (Math.abs(deltaX) > 20) {
+        const opacity = Math.min(Math.abs(deltaX) / swipeThreshold, 1);
+        if (deltaX > 0) {
+          // Swiping right
+          rightIndicator.style.opacity = opacity;
+          leftIndicator.style.opacity = 0;
+        } else {
+          // Swiping left
+          leftIndicator.style.opacity = opacity;
+          rightIndicator.style.opacity = 0;
+        }
+      } else {
+        leftIndicator.style.opacity = 0;
+        rightIndicator.style.opacity = 0;
+      }
+
+      // Apply transform for smooth dragging
+      currentSwipeElement.style.transform = `translateX(${deltaX * 0.3}px)`;
+    }
+
+    function endSwipe() {
+      if (!isDragging || !currentSwipeElement) return;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      // Reset transform
+      currentSwipeElement.style.transform = '';
+      
+      // Hide indicators
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      leftIndicator.style.opacity = 0;
+      rightIndicator.style.opacity = 0;
+
+      currentSwipeElement.classList.remove('swiping');
+
+      // Check if swipe threshold is met and vertical movement is minimal
+      if (Math.abs(deltaX) > swipeThreshold && deltaY < swipeRestrictY) {
+        hideEvent(currentSwipeElement);
+      }
+
+      // Reset variables
+      isDragging = false;
+      currentSwipeElement = null;
+      touchStartX = 0;
+      touchStartY = 0;
+      currentX = 0;
+      currentY = 0;
+    }
+
     function renderEvents() {
       const searchTerm = searchInput.value.toLowerCase().trim();
       const venueFilter = venueSelect.value.toLowerCase();
       const showFavoritesOnly = favoritesOnly.checked;
+      const showHiddenEvents = showHidden.checked;
+
+      // Clean up expired hidden events
+      cleanupHiddenEvents();
 
       // Clear the events container
       eventsContainer.innerHTML = '';
@@ -490,10 +800,15 @@
       const filteredEvents = allEventElements.filter(event => {
         const title = event.dataset.title || '';
         const venue = event.dataset.venue || '';
+        const eventId = event.dataset.eventId || '';
+        const eventDate = event.dataset.date || '';
         const isFav = matchesFavorite(title, favorites);
+        const isHidden = isEventHidden(eventId, eventDate);
         
         // Update favorite styling
         event.classList.toggle('favorite', isFav);
+        event.classList.toggle('hidden', isHidden);
+        
         const starBtn = event.querySelector('.star-button');
         if (starBtn) {
           if (isFav) {
@@ -505,19 +820,45 @@
           }
         }
 
+        // Update hide button text
+        const hideBtn = event.querySelector('.hide-button');
+        if (hideBtn) {
+          if (isHidden) {
+            hideBtn.innerHTML = '🔄 Unhide';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              unhideEvent(eventId, title);
+            };
+          } else {
+            hideBtn.innerHTML = '🗑️ Hide';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              hideEvent(event);
+            };
+          }
+        }
+
         // Apply filters
         const matchesSearch = !searchTerm || title.includes(searchTerm);
         const matchesVenue = !venueFilter || venue === venueFilter;
         const matchesFavorites = !showFavoritesOnly || isFav;
+        const matchesHidden = showHiddenEvents || !isHidden;
 
-        return matchesSearch && matchesVenue && matchesFavorites;
+        return matchesSearch && matchesVenue && matchesFavorites && matchesHidden;
       });
 
-      // Sort so favorites appear first
+      // Sort so favorites appear first, then by hidden status
       filteredEvents.sort((a, b) => {
         const aFav = matchesFavorite(a.dataset.title || '', favorites);
         const bFav = matchesFavorite(b.dataset.title || '', favorites);
-        return (aFav === bFav) ? 0 : aFav ? -1 : 1;
+        const aHidden = isEventHidden(a.dataset.eventId || '', a.dataset.date || '');
+        const bHidden = isEventHidden(b.dataset.eventId || '', b.dataset.date || '');
+        
+        if (aFav !== bFav) return aFav ? -1 : 1;
+        if (aHidden !== bHidden) return aHidden ? 1 : -1;
+        return 0;
       });
 
       // Show/hide events and no results message
@@ -616,6 +957,7 @@
     searchInput.addEventListener('input', renderEvents);
     venueSelect.addEventListener('change', renderEvents);
     favoritesOnly.addEventListener('change', renderEvents);
+    showHidden.addEventListener('change', renderEvents);
     
     // Allow adding favorites with Enter key
     newFavoriteInput.addEventListener('keypress', function(e) {
@@ -629,8 +971,16 @@
       // Check storage availability first
       checkStorageAvailability();
       
-      // Cache all event elements
+      // Cache all event elements and add swipe handlers
       allEventElements = Array.from(document.querySelectorAll('.event'));
+      
+      // Add unique IDs to events if they don't have them
+      allEventElements.forEach((event, index) => {
+        if (!event.dataset.eventId) {
+          event.dataset.eventId = `event-${index}-${Date.now()}`;
+        }
+        addSwipeHandlers(event);
+      });
       
       renderFavoritesList();
       renderEvents();
