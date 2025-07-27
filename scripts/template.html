@@ -133,8 +133,9 @@
     }
 
     .event.hidden {
-      opacity: 0.5;
-      background: rgba(255, 255, 255, 0.7);
+      opacity: 0.4;
+      background: rgba(255, 255, 255, 0.6);
+      transform: scale(0.98);
     }
 
     .event.swiping {
@@ -238,13 +239,18 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      font-size: 2rem;
-      color: #e74c3c;
+      background: rgba(231, 76, 60, 0.9);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
       z-index: 5;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .swipe-indicator.left {
@@ -488,10 +494,10 @@
     const noEventsMessage = document.getElementById('noEventsMessage');
     const storageWarning = document.getElementById('storageWarning');
 
-    let favorites = [];
-    let hiddenEvents = [];
+    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    let hiddenEvents = JSON.parse(localStorage.getItem('hiddenEvents') || '[]');
     let allEventElements = [];
-    let storageAvailable = false;
+    let storageAvailable = true;
 
     // Touch/swipe handling variables
     let touchStartX = 0;
@@ -565,27 +571,29 @@
       }
     }
 
-    function isEventHidden(eventId, eventDate) {
+    function isEventHidden(eventId, eventDate, eventTitle) {
       return hiddenEvents.some(hidden => 
         hidden.id === eventId || 
-        (hidden.title && hidden.date && hidden.title === getEventTitle(eventId) && hidden.date === eventDate)
+        (hidden.title && hidden.date && hidden.title === eventTitle && hidden.date === eventDate)
       );
     }
 
-    function getEventTitle(eventId) {
-      const element = document.querySelector(`[data-event-id="${eventId}"]`);
-      return element ? (element.dataset.title || '') : '';
+    function getEventTitle(eventElement) {
+      return eventElement.dataset.title || eventElement.querySelector('h2')?.textContent?.trim() || '';
     }
 
-    function getEventDate(eventId) {
-      const element = document.querySelector(`[data-event-id="${eventId}"]`);
-      return element ? (element.dataset.date || '') : '';
+    function getEventDate(eventElement) {
+      return eventElement.dataset.date || '';
+    }
+
+    function getEventId(eventElement) {
+      return eventElement.dataset.eventId || '';
     }
 
     function hideEvent(eventElement) {
-      const eventId = eventElement.dataset.eventId || '';
-      const title = eventElement.dataset.title || '';
-      const date = eventElement.dataset.date || '';
+      const eventId = getEventId(eventElement);
+      const title = getEventTitle(eventElement);
+      const date = getEventDate(eventElement);
       
       const hiddenEvent = {
         id: eventId,
@@ -594,17 +602,27 @@
         timestamp: Date.now()
       };
       
-      if (!hiddenEvents.some(h => h.id === eventId && h.title === title)) {
+      // Check if not already hidden
+      if (!isEventHidden(eventId, date, title)) {
         hiddenEvents.push(hiddenEvent);
         saveHiddenEvents();
+        console.log('Hidden event:', hiddenEvent);
       }
       
       renderEvents();
     }
 
-    function unhideEvent(eventId, title) {
-      hiddenEvents = hiddenEvents.filter(h => !(h.id === eventId || h.title === title));
-      saveHiddenEvents();
+    function unhideEvent(eventId, title, date) {
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(h => 
+        !(h.id === eventId || (h.title === title && h.date === date))
+      );
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+        console.log('Unhidden event:', { id: eventId, title, date });
+      }
+      
       renderEvents();
     }
 
@@ -638,14 +656,14 @@
     }
 
     function addSwipeHandlers(eventElement) {
-      // Add swipe indicator
+      // Add swipe indicators with cleaner design
       const leftIndicator = document.createElement('div');
       leftIndicator.className = 'swipe-indicator left';
-      leftIndicator.innerHTML = '👋';
+      leftIndicator.textContent = 'HIDE';
       
       const rightIndicator = document.createElement('div');
       rightIndicator.className = 'swipe-indicator right';
-      rightIndicator.innerHTML = '👋';
+      rightIndicator.textContent = 'HIDE';
       
       eventElement.appendChild(leftIndicator);
       eventElement.appendChild(rightIndicator);
@@ -655,7 +673,7 @@
       if (eventActions) {
         const hideButton = document.createElement('button');
         hideButton.className = 'hide-button';
-        hideButton.innerHTML = '🗑️ Hide';
+        hideButton.textContent = 'Hide';
         hideButton.onclick = (e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -765,8 +783,8 @@
       // Hide indicators
       const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
       const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
-      leftIndicator.style.opacity = 0;
-      rightIndicator.style.opacity = 0;
+      if (leftIndicator) leftIndicator.style.opacity = 0;
+      if (rightIndicator) rightIndicator.style.opacity = 0;
 
       currentSwipeElement.classList.remove('swiping');
 
@@ -793,17 +811,14 @@
       // Clean up expired hidden events
       cleanupHiddenEvents();
 
-      // Clear the events container
-      eventsContainer.innerHTML = '';
-      
       // Filter and sort events
       const filteredEvents = allEventElements.filter(event => {
-        const title = event.dataset.title || '';
+        const title = getEventTitle(event);
         const venue = event.dataset.venue || '';
-        const eventId = event.dataset.eventId || '';
-        const eventDate = event.dataset.date || '';
+        const eventId = getEventId(event);
+        const eventDate = getEventDate(event);
         const isFav = matchesFavorite(title, favorites);
-        const isHidden = isEventHidden(eventId, eventDate);
+        const isHidden = isEventHidden(eventId, eventDate, title);
         
         // Update favorite styling
         event.classList.toggle('favorite', isFav);
@@ -824,14 +839,14 @@
         const hideBtn = event.querySelector('.hide-button');
         if (hideBtn) {
           if (isHidden) {
-            hideBtn.innerHTML = '🔄 Unhide';
+            hideBtn.textContent = 'Unhide';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
-              unhideEvent(eventId, title);
+              unhideEvent(eventId, title, eventDate);
             };
           } else {
-            hideBtn.innerHTML = '🗑️ Hide';
+            hideBtn.textContent = 'Hide';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -841,8 +856,8 @@
         }
 
         // Apply filters
-        const matchesSearch = !searchTerm || title.includes(searchTerm);
-        const matchesVenue = !venueFilter || venue === venueFilter;
+        const matchesSearch = !searchTerm || title.toLowerCase().includes(searchTerm);
+        const matchesVenue = !venueFilter || venue.toLowerCase() === venueFilter;
         const matchesFavorites = !showFavoritesOnly || isFav;
         const matchesHidden = showHiddenEvents || !isHidden;
 
@@ -851,16 +866,19 @@
 
       // Sort so favorites appear first, then by hidden status
       filteredEvents.sort((a, b) => {
-        const aFav = matchesFavorite(a.dataset.title || '', favorites);
-        const bFav = matchesFavorite(b.dataset.title || '', favorites);
-        const aHidden = isEventHidden(a.dataset.eventId || '', a.dataset.date || '');
-        const bHidden = isEventHidden(b.dataset.eventId || '', b.dataset.date || '');
+        const aFav = matchesFavorite(getEventTitle(a), favorites);
+        const bFav = matchesFavorite(getEventTitle(b), favorites);
+        const aHidden = isEventHidden(getEventId(a), getEventDate(a), getEventTitle(a));
+        const bHidden = isEventHidden(getEventId(b), getEventDate(b), getEventTitle(b));
         
         if (aFav !== bFav) return aFav ? -1 : 1;
         if (aHidden !== bHidden) return aHidden ? 1 : -1;
         return 0;
       });
 
+      // Clear and repopulate events container
+      eventsContainer.innerHTML = '';
+      
       // Show/hide events and no results message
       if (filteredEvents.length === 0) {
         noEventsMessage.style.display = 'block';
