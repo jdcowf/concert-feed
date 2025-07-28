@@ -394,9 +394,13 @@ def generate_html(events, title="Upcoming Concerts"):
     # Generate events HTML
     events_html = ""
     for e in events:
+        # Don't bother showing past events
+        if e.date_obj <= dt.datetime.today() - dt.timedelta(days=1):
+            continue
+
         escaped_title = e.title.replace('"', '&quot;').replace("'", "\\'")
         events_html += f"""
-    <div class="event" data-title="{e.title.lower()}" data-venue="{e.venue.lower()}">
+    <div class="event" data-title="{e.title.lower()}" data-venue="{e.venue.lower()}" data-date="{e.date_str}">
       <h2><a href="{e.link}" target="_blank" rel="noopener">{e.title}</a></h2>
       <p class="venue">{e.venue}</p>
       <div class="event-details">
