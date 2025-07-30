@@ -554,12 +554,13 @@
     }
 
     function cleanupHiddenEvents() {
-      const now = new Date();
+      const yeaterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
       const initialLength = hiddenEvents.length;
       hiddenEvents = hiddenEvents.filter(hiddenEvent => {
         try {
           const eventDate = new Date(hiddenEvent.date);
-          return eventDate >= now;
+          return eventDate >= yesterday;
         } catch (e) {
           // If date parsing fails, keep the event to be safe
           return true;
