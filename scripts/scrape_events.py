@@ -376,46 +376,80 @@ def get_event_details(event_url: str) -> dict:
         return {}
 
 
+def render_event_html(event: EventInfo, template: str) -> str:
+    """
+    Render a single event using the event template.
+    
+    Args:
+        event: EventInfo object containing event data
+        template: HTML template string for a single event
+    
+    Returns:
+        Rendered HTML string for the event
+    """
+    # Don't bother rendering past events
+    if event.date_obj <= dt.datetime.today() - dt.timedelta(days=1):
+        return ""
+    
+    # Escape values for HTML attributes
+    escaped_title = event.title.replace('"', '&quot;').replace("'", "\\'")
+    
+    # Replace template placeholders
+    html = template
+    html = html.replace('{e.title}', event.title)
+    html = html.replace('{e.link}', event.link)
+    html = html.replace('{e.venue}', event.venue)
+    html = html.replace('{e.date_str}', event.date_str)
+    html = html.replace('{e.tickets}', event.tickets or '#')
+    html = html.replace('{escaped_title}', escaped_title)
+    
+    # Handle conditional time display
+    if event.time:
+        time_span = f'<span class="time bg-neutral-700 px-3 py-1 rounded font-medium">{event.time}</span>'
+        html = html.replace("{f'<span class=\"time bg-neutral-700 px-3 py-1 rounded font-medium\">{e.time}</span>' if e.time else ''}", time_span)
+    else:
+        html = html.replace("{f'<span class=\"time bg-neutral-700 px-3 py-1 rounded font-medium\">{e.time}</span>' if e.time else ''}", "")
+    
+    # Handle data attributes
+    html = html.replace('{e.title.lower()}', event.title.lower())
+    html = html.replace('{e.venue.lower()}', event.venue.lower())
+    
+    return html
+
+
 def generate_html(events, title="Upcoming Concerts"):
     """Generate HTML content using external template"""
     template_path = Path(__file__).parent / 'template.html'
+    event_template_path = Path(__file__).parent / 'event-template.html'
     
     if not template_path.exists():
         logging.error(f"Template file not found: {template_path}")
         return ""
     
+    if not event_template_path.exists():
+        logging.error(f"Event template file not found: {event_template_path}")
+        return ""
+    
+    # Read templates
     with template_path.open('r', encoding='utf-8') as f:
-        template = f.read()
+        main_template = f.read()
+    
+    with event_template_path.open('r', encoding='utf-8') as f:
+        event_template = f.read()
     
     # Generate venue options
     venues = sorted(set(e.venue for e in events if e.venue))
     venues_options = '\n'.join(f'<option value="{v}">{v}</option>' for v in venues)
     
-    # Generate events HTML
+    # Generate events HTML using the template
     events_html = ""
-    for e in events:
-        # Don't bother showing past events
-        if e.date_obj <= dt.datetime.today() - dt.timedelta(days=1):
-            continue
-
-        escaped_title = e.title.replace('"', '&quot;').replace("'", "\\'")
-        events_html += f"""
-    <div class="event" data-title="{e.title.lower()}" data-venue="{e.venue.lower()}" data-date="{e.date_str}">
-      <h2><a href="{e.link}" target="_blank" rel="noopener">{e.title}</a></h2>
-      <p class="venue">{e.venue}</p>
-      <div class="event-details">
-        <span class="date">{e.date_str}</span>
-        {f'<span class="time">{e.time}</span>' if e.time else ''}
-      </div>
-      <div class="event-actions">
-        <a class="button" href="{e.tickets}" target="_blank" rel="noopener">Buy Tickets</a>
-        <button class="star-button" aria-label="Toggle favorite" onclick="toggleFavoriteFromEvent(this, '{escaped_title}')">☆</button>
-      </div>
-    </div>
-"""
+    for event in events:
+        event_html = render_event_html(event, event_template)
+        if event_html:  # Only add non-empty HTML (skips past events)
+            events_html += event_html + '\n'
     
-    # Replace placeholders in template
-    html = template.replace('{{TITLE}}', title)
+    # Replace placeholders in main template
+    html = main_template.replace('{{TITLE}}', title)
     html = html.replace('{{VENUES_OPTIONS}}', venues_options)
     html = html.replace('{{EVENTS}}', events_html)
     

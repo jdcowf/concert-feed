@@ -4,482 +4,124 @@
   <meta charset="UTF-8" />
   <title>{{TITLE}}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * {
-      box-sizing: border-box;
+    input:valid {
+      background-color: #d9f99d;
     }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-      color: #2c3e50;
-      margin: 0;
-      padding: 2rem;
-      line-height: 1.6;
-      min-height: 100vh;
+    input:invalid {
+      background-color: #fecaca;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
+    .slidingCard {
+      transition: transform 0.15s ease-in-out;
     }
-
-    h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 2rem;
-      color: #34495e;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .controls {
-      background: rgba(255, 255, 255, 0.9);
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-bottom: 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .controls-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .controls-row:last-child {
-      margin-bottom: 0;
-    }
-
-    #search, #venueFilter {
-      padding: 0.75rem 1rem;
-      font-size: 1rem;
-      border: 2px solid #e1e8ed;
-      border-radius: 8px;
-      background: white;
-      transition: all 0.3s ease;
-      min-width: 200px;
-      flex: 1;
-    }
-
-    #search:focus, #venueFilter:focus {
-      outline: none;
-      border-color: #3498db;
-      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-    }
-
-    .checkbox-container {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-    }
-
-    input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-
-    .settings-toggle {
-      background: #34495e;
-      color: white;
-      padding: 0.75rem 1rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .settings-toggle:hover {
-      background: #2c3e50;
-      transform: translateY(-1px);
-    }
-
-    .event {
-      background: rgba(255, 255, 255, 0.95);
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      border-radius: 12px;
-      border-left: 4px solid #95a5a6;
-      position: relative;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      backdrop-filter: blur(10px);
-      cursor: grab;
-      overflow: hidden;
-    }
-
-    .event:active {
-      cursor: grabbing;
-    }
-
-    .event:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    }
-
-    .event.favorite {
-      border-left-color: #f39c12;
-      background: rgba(255, 248, 220, 0.95);
-    }
-
-    .event.hidden {
-      opacity: 0.4;
-      background: rgba(255, 255, 255, 0.6);
-      transform: scale(0.98);
-    }
-
-    .event.swiping {
-      z-index: 10;
-    }
-
-    .event h2 {
-      margin: 0 0 0.5rem 0;
-      font-size: 1.4rem;
-      font-weight: 600;
-    }
-
-    .event h2 a {
-      color: #2c3e50;
-      text-decoration: none;
-      transition: color 0.3s ease;
-    }
-
-    .event h2 a:hover {
-      color: #3498db;
-    }
-
-    .venue {
-      color: #7f8c8d;
-      margin: 0 0 1rem 0;
-      font-weight: 500;
-      font-size: 0.9rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .event-details {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-      color: #34495e;
-    }
-
-    .date, .time {
-      background: #ecf0f1;
-      padding: 0.4rem 0.8rem;
-      border-radius: 6px;
-      font-weight: 500;
-    }
-
-    .event-actions {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.6rem 1.2rem;
-      background: #2c3e50;
-      color: white;
-      font-size: 0.9rem;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: all 0.3s ease;
-      font-weight: 500;
-    }
-
-    .button:hover {
-      background: #34495e;
-      transform: translateY(-1px);
-    }
-
-    .star-button {
-      font-size: 1.5rem;
-      cursor: pointer;
-      user-select: none;
-      color: #bdc3c7;
-      transition: all 0.3s ease;
-      border: none;
-      background: none;
-      padding: 0.5rem;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .star-button:hover {
-      background: rgba(0,0,0,0.05);
-      transform: scale(1.1);
-    }
-
-    .star-button.favorited {
-      color: #f39c12;
-      text-shadow: 0 0 8px rgba(243, 156, 18, 0.3);
-    }
-
+    
     .swipe-indicator {
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      background: rgba(231, 76, 60, 0.9);
+      background: rgba(239, 68, 68, 0.95);
       color: white;
       padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
       font-weight: 600;
       opacity: 0;
       transition: opacity 0.3s ease;
       pointer-events: none;
-      z-index: 5;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      z-index: 10;
     }
 
     .swipe-indicator.left {
-      right: 20px;
+      right: 1rem;
     }
 
     .swipe-indicator.right {
-      left: 20px;
+      left: 1rem;
     }
 
-    .hide-button {
-      background: #e74c3c;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.3s ease;
-      margin-left: 0.5rem;
-    }
-
-    .hide-button:hover {
-      background: #c0392b;
-    }
-
-    .settings {
-      background: rgba(255, 255, 255, 0.95);
-      padding: 1.5rem;
-      border-radius: 12px;
-      margin-top: 1rem;
-      max-width: 600px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .settings h2 {
-      margin: 0 0 1rem 0;
-      color: #2c3e50;
-      font-size: 1.2rem;
-    }
-
-    .settings ul {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 1rem 0;
-    }
-
-    .settings li {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #ecf0f1;
-    }
-
-    .settings li:last-child {
-      border-bottom: none;
-    }
-
-    .settings input[type="text"], .settings textarea {
-      padding: 0.5rem;
-      border: 2px solid #e1e8ed;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      transition: border-color 0.3s ease;
-    }
-
-    .settings input[type="text"]:focus, .settings textarea:focus {
-      outline: none;
-      border-color: #3498db;
-    }
-
-    .settings button {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background-color 0.3s ease;
-    }
-
-    .settings button:hover {
-      background: #2980b9;
-    }
-
-    .settings button.remove {
-      background: #e74c3c;
-      padding: 0.3rem 0.6rem;
-      font-size: 0.8rem;
-    }
-
-    .settings button.remove:hover {
-      background: #c0392b;
-    }
-
-    .add-favorite-row {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1rem;
-    }
-
-    .add-favorite-row input {
-      flex: 1;
-    }
-
-    .no-events {
-      text-align: center;
-      padding: 3rem;
-      color: #7f8c8d;
-      font-style: italic;
-    }
-
-    .storage-warning {
-      background: #f39c12;
-      color: white;
-      padding: 1rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      display: none;
-    }
-
-    .swipe-hint {
-      background: rgba(52, 152, 219, 0.1);
-      color: #3498db;
-      padding: 0.75rem;
-      border-radius: 8px;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-      text-align: center;
-      border: 1px solid rgba(52, 152, 219, 0.2);
-    }
-
-    @media (max-width: 768px) {
-      body {
-        padding: 1rem;
-      }
-
-      h1 {
-        font-size: 2rem;
-      }
-
-      .controls-row {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      #search, #venueFilter {
-        min-width: unset;
-      }
-
-      .event-actions {
-        flex-direction: column;
-        gap: 1rem;
-        align-items: stretch;
-      }
-
-      .button {
-        text-align: center;
-      }
-
-      .star-button {
-        align-self: center;
-      }
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #525252;
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <h1>{{TITLE}}</h1>
+<body class="font-mono bg-neutral-900 text-neutral-50 min-h-screen">
+  <main class="flex flex-col min-h-screen">
+    <header class="text-3xl p-4 font-semibold">
+      {{TITLE}}
+    </header>
 
-    <div id="storageWarning" class="storage-warning">
-      <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
-    </div>
-
-    <div class="swipe-hint">
-      💡 <strong>Tip:</strong> Swipe left or right on event cards to hide them, or use the hide button
-    </div>
-
-    <div class="controls">
-      <div class="controls-row">
-        <input type="text" id="search" placeholder="Search events..." />
-        <select id="venueFilter">
-          <option value="">All Venues</option>
-          {{VENUES_OPTIONS}}
-        </select>
+    <section class="flex flex-auto grow flex-col">
+      <div id="storageWarning" class="bg-amber-500 text-neutral-900 p-4 m-4 rounded hidden">
+        <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
       </div>
-      <div class="controls-row">
-        <label class="checkbox-container">
-          <input type="checkbox" id="favoritesOnly" />
-          <span>Show only favorites</span>
-        </label>
-        <label class="checkbox-container">
-          <input type="checkbox" id="showHidden" />
-          <span>Show hidden events</span>
-        </label>
-        <button class="settings-toggle" onclick="toggleSettings()">
-          <span>⚙️</span>
-          <span>Favorites Settings</span>
-        </button>
-      </div>
-    </div>
 
-    <div id="settingsPanel" class="settings" style="display:none;">
-      <h2>Favorite Keywords</h2>
-      <div class="add-favorite-row">
-        <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." />
-        <button onclick="addFavorite()">Add</button>
+      <div class="bg-blue-900 text-blue-200 p-3 m-4 rounded text-sm text-center">
+        💡 <strong>Tip:</strong> Swipe left or right on event cards to hide them, or use the hide button
       </div>
-      <ul id="favoritesList"></ul>
-      <h3>Import/Export</h3>
-      <textarea id="favoritesJson" rows="4" style="width:100%; margin-bottom: 0.5rem;"></textarea>
-      <div style="display: flex; gap: 0.5rem;">
-        <button onclick="exportFavorites()">Export</button>
-        <button onclick="importFavorites()">Import</button>
+
+      <div class="bg-neutral-800 p-4 m-4 rounded space-y-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input type="text" id="search" placeholder="Search events..." 
+                 class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400" />
+          <select id="venueFilter" 
+                  class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400">
+            <option value="">All Venues</option>
+            {{VENUES_OPTIONS}}
+          </select>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="favoritesOnly" class="w-4 h-4" />
+            <span>Show only favorites</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showHidden" class="w-4 h-4" />
+            <span>Show hidden events</span>
+          </label>
+          <button class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded flex items-center gap-2" 
+                  onclick="toggleSettings()">
+            <span>⚙️</span>
+            <span>Settings</span>
+          </button>
+        </div>
       </div>
-    </div>
 
-    <div id="events">
-      {{EVENTS}}
-    </div>
+      <div id="settingsPanel" class="bg-neutral-800 p-4 m-4 rounded hidden max-w-2xl">
+        <h2 class="text-xl font-semibold mb-4">Favorite Keywords</h2>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." 
+                 class="flex-1 p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600" />
+          <button onclick="addFavorite()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Add</button>
+        </div>
+        <div id="favoritesList" class="space-y-2 mb-4"></div>
+        <h3 class="text-lg font-semibold mb-2">Import/Export</h3>
+        <textarea id="favoritesJson" rows="4" 
+                  class="w-full p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 mb-2"></textarea>
+        <div class="flex gap-2">
+          <button onclick="exportFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Export</button>
+          <button onclick="importFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Import</button>
+        </div>
+      </div>
 
-    <div id="noEventsMessage" class="no-events" style="display: none;">
-      <p>No events match your current filters.</p>
-    </div>
-  </div>
+      <div id="events" class="space-y-4 m-4">
+        {{EVENTS}}
+      </div>
+
+      <div id="noEventsMessage" class="text-center py-12 text-neutral-400 italic hidden">
+        <p>No events match your current filters.</p>
+      </div>
+    </section>
+
+    <footer class="text-sm p-4 font-semibold text-center">
+      Swipe events to hide • Star to favorite
+    </footer>
+  </main>
 
   <script>
     const searchInput = document.getElementById('search');
@@ -494,8 +136,8 @@
     const noEventsMessage = document.getElementById('noEventsMessage');
     const storageWarning = document.getElementById('storageWarning');
 
-    let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
-    let hiddenEvents = JSON.parse(localStorage.getItem('hiddenEvents') || '[]');
+    let favorites = [];
+    let hiddenEvents = [];
     let allEventElements = [];
     let storageAvailable = true;
 
@@ -528,7 +170,7 @@
         }
       } catch (e) {
         storageAvailable = false;
-        storageWarning.style.display = 'block';
+        storageWarning.classList.remove('hidden');
         console.warn('localStorage not available, favorites and hidden events will be session-only');
       }
     }
@@ -554,7 +196,7 @@
     }
 
     function cleanupHiddenEvents() {
-      const yeaterday = new Date();
+      const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       const initialLength = hiddenEvents.length;
       hiddenEvents = hiddenEvents.filter(hiddenEvent => {
@@ -562,7 +204,6 @@
           const eventDate = new Date(hiddenEvent.date);
           return eventDate >= yesterday;
         } catch (e) {
-          // If date parsing fails, keep the event to be safe
           return true;
         }
       });
@@ -603,7 +244,6 @@
         timestamp: Date.now()
       };
       
-      // Check if not already hidden
       if (!isEventHidden(eventId, date, title)) {
         hiddenEvents.push(hiddenEvent);
         saveHiddenEvents();
@@ -641,12 +281,10 @@
           if (!fav) return false;
           
           if (fav.length <= 4) {
-            // Match whole word using word boundaries
             const escapedFav = escapeRegex(fav);
             const wordRegex = new RegExp("\\b" + escapedFav + "\\b", "i");
             return wordRegex.test(title);
           } else {
-            // Match substring
             return title.includes(fav);
           }
         } catch (e) {
@@ -657,7 +295,6 @@
     }
 
     function addSwipeHandlers(eventElement) {
-      // Add swipe indicators with cleaner design
       const leftIndicator = document.createElement('div');
       leftIndicator.className = 'swipe-indicator left';
       leftIndicator.textContent = 'HIDE';
@@ -669,11 +306,10 @@
       eventElement.appendChild(leftIndicator);
       eventElement.appendChild(rightIndicator);
 
-      // Add hide button to event actions
       const eventActions = eventElement.querySelector('.event-actions');
       if (eventActions) {
         const hideButton = document.createElement('button');
-        hideButton.className = 'hide-button';
+        hideButton.className = 'bg-red-700 hover:bg-red-600 px-3 py-1 rounded text-sm';
         hideButton.textContent = 'Hide';
         hideButton.onclick = (e) => {
           e.preventDefault();
@@ -683,12 +319,10 @@
         eventActions.appendChild(hideButton);
       }
 
-      // Touch events
       eventElement.addEventListener('touchstart', handleTouchStart, { passive: true });
       eventElement.addEventListener('touchmove', handleTouchMove, { passive: false });
       eventElement.addEventListener('touchend', handleTouchEnd, { passive: true });
 
-      // Mouse events for desktop testing
       eventElement.addEventListener('mousedown', handleMouseStart);
       eventElement.addEventListener('mousemove', handleMouseMove);
       eventElement.addEventListener('mouseup', handleMouseEnd);
@@ -731,7 +365,7 @@
       currentY = y;
       isDragging = true;
       currentSwipeElement = element;
-      element.classList.add('swiping');
+      element.classList.add('z-10');
     }
 
     function moveSwipe(x, y) {
@@ -743,23 +377,19 @@
       const deltaX = currentX - touchStartX;
       const deltaY = Math.abs(currentY - touchStartY);
 
-      // If vertical movement is too much, cancel horizontal swipe
       if (deltaY > swipeRestrictY) {
         return;
       }
 
-      // Update visual feedback
       const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
       const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
       
       if (Math.abs(deltaX) > 20) {
         const opacity = Math.min(Math.abs(deltaX) / swipeThreshold, 1);
         if (deltaX > 0) {
-          // Swiping right
           rightIndicator.style.opacity = opacity;
           leftIndicator.style.opacity = 0;
         } else {
-          // Swiping left
           leftIndicator.style.opacity = opacity;
           rightIndicator.style.opacity = 0;
         }
@@ -768,7 +398,6 @@
         rightIndicator.style.opacity = 0;
       }
 
-      // Apply transform for smooth dragging
       currentSwipeElement.style.transform = `translateX(${deltaX * 0.3}px)`;
     }
 
@@ -778,23 +407,19 @@
       const deltaX = currentX - touchStartX;
       const deltaY = Math.abs(currentY - touchStartY);
 
-      // Reset transform
       currentSwipeElement.style.transform = '';
       
-      // Hide indicators
       const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
       const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
       if (leftIndicator) leftIndicator.style.opacity = 0;
       if (rightIndicator) rightIndicator.style.opacity = 0;
 
-      currentSwipeElement.classList.remove('swiping');
+      currentSwipeElement.classList.remove('z-10');
 
-      // Check if swipe threshold is met and vertical movement is minimal
       if (Math.abs(deltaX) > swipeThreshold && deltaY < swipeRestrictY) {
         hideEvent(currentSwipeElement);
       }
 
-      // Reset variables
       isDragging = false;
       currentSwipeElement = null;
       touchStartX = 0;
@@ -809,10 +434,8 @@
       const showFavoritesOnly = favoritesOnly.checked;
       const showHiddenEvents = showHidden.checked;
 
-      // Clean up expired hidden events
       cleanupHiddenEvents();
 
-      // Filter and sort events
       const filteredEvents = allEventElements.filter(event => {
         const title = getEventTitle(event);
         const venue = event.dataset.venue || '';
@@ -821,26 +444,39 @@
         const isFav = matchesFavorite(title, favorites);
         const isHidden = isEventHidden(eventId, eventDate, title);
         
-        // Update favorite styling
-        event.classList.toggle('favorite', isFav);
-        event.classList.toggle('hidden', isHidden);
+        // Update styling for favorites and hidden events
+        if (isFav) {
+          event.classList.add('bg-yellow-900', 'border-yellow-600');
+          event.classList.remove('bg-neutral-800', 'border-neutral-700');
+        } else {
+          event.classList.add('bg-neutral-800', 'border-neutral-700');
+          event.classList.remove('bg-yellow-900', 'border-yellow-600');
+        }
+        
+        if (isHidden) {
+          event.classList.add('opacity-40');
+        } else {
+          event.classList.remove('opacity-40');
+        }
         
         const starBtn = event.querySelector('.star-button');
         if (starBtn) {
           if (isFav) {
             starBtn.textContent = '★';
-            starBtn.classList.add('favorited');
+            starBtn.classList.add('text-yellow-400');
+            starBtn.classList.remove('text-neutral-400');
           } else {
             starBtn.textContent = '☆';
-            starBtn.classList.remove('favorited');
+            starBtn.classList.add('text-neutral-400');
+            starBtn.classList.remove('text-yellow-400');
           }
         }
 
-        // Update hide button text
-        const hideBtn = event.querySelector('.hide-button');
+        const hideBtn = event.querySelector('.bg-red-700, .bg-green-700');
         if (hideBtn) {
           if (isHidden) {
             hideBtn.textContent = 'Unhide';
+            hideBtn.className = 'bg-green-700 hover:bg-green-600 px-3 py-1 rounded text-sm';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -848,6 +484,7 @@
             };
           } else {
             hideBtn.textContent = 'Hide';
+            hideBtn.className = 'bg-red-700 hover:bg-red-600 px-3 py-1 rounded text-sm';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -856,7 +493,6 @@
           }
         }
 
-        // Apply filters
         const matchesSearch = !searchTerm || title.toLowerCase().includes(searchTerm);
         const matchesVenue = !venueFilter || venue.toLowerCase() === venueFilter;
         const matchesFavorites = !showFavoritesOnly || isFav;
@@ -865,7 +501,6 @@
         return matchesSearch && matchesVenue && matchesFavorites && matchesHidden;
       });
 
-      // Sort so favorites appear first, then by hidden status
       filteredEvents.sort((a, b) => {
         const aFav = matchesFavorite(getEventTitle(a), favorites);
         const bFav = matchesFavorite(getEventTitle(b), favorites);
@@ -877,14 +512,12 @@
         return 0;
       });
 
-      // Clear and repopulate events container
       eventsContainer.innerHTML = '';
       
-      // Show/hide events and no results message
       if (filteredEvents.length === 0) {
-        noEventsMessage.style.display = 'block';
+        noEventsMessage.classList.remove('hidden');
       } else {
-        noEventsMessage.style.display = 'none';
+        noEventsMessage.classList.add('hidden');
         filteredEvents.forEach(event => {
           eventsContainer.appendChild(event);
         });
@@ -912,38 +545,37 @@
     function renderFavoritesList() {
       favoritesList.innerHTML = '';
       favorites.forEach(fav => {
-        const li = document.createElement('li');
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-2 bg-neutral-700 rounded';
+        
         const span = document.createElement('span');
         span.textContent = fav;
         
         const button = document.createElement('button');
-        button.className = 'remove';
+        button.className = 'bg-red-700 hover:bg-red-600 px-2 py-1 rounded text-xs';
         button.textContent = 'Remove';
         button.onclick = () => removeFavorite(fav);
         
-        li.appendChild(span);
-        li.appendChild(button);
-        favoritesList.appendChild(li);
+        div.appendChild(span);
+        div.appendChild(button);
+        favoritesList.appendChild(div);
       });
     }
 
     function toggleSettings() {
-      settingsPanel.style.display = settingsPanel.style.display === 'none' ? 'block' : 'none';
+      settingsPanel.classList.toggle('hidden');
     }
 
     function toggleFavoriteFromEvent(button, title) {
-      // Show prompt for substring selection (default full title)
       const substr = prompt("Enter keyword to save as favorite (default: full title):", title);
-      if (substr === null) return; // canceled
-      if (substr === '') return; // empty input
+      if (substr === null) return;
+      if (substr === '') return;
 
       const cleaned = substr.toLowerCase().trim();
       const isFav = favorites.includes(cleaned);
       if (isFav) {
-        // Remove favorite
         favorites = favorites.filter(f => f !== cleaned);
       } else {
-        // Add favorite
         favorites.push(cleaned);
       }
       saveFavorites();
@@ -978,7 +610,6 @@
     favoritesOnly.addEventListener('change', renderEvents);
     showHidden.addEventListener('change', renderEvents);
     
-    // Allow adding favorites with Enter key
     newFavoriteInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         addFavorite();
@@ -987,13 +618,10 @@
 
     // Initialize on page load
     window.addEventListener('load', () => {
-      // Check storage availability first
       checkStorageAvailability();
       
-      // Cache all event elements and add swipe handlers
       allEventElements = Array.from(document.querySelectorAll('.event'));
       
-      // Add unique IDs to events if they don't have them
       allEventElements.forEach((event, index) => {
         if (!event.dataset.eventId) {
           event.dataset.eventId = `event-${index}-${Date.now()}`;
