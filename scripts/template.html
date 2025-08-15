@@ -7,11 +7,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     input:valid {
-      background-color: #d9f99d;
+      background-color: #404040;
     }
 
     input:invalid {
-      background-color: #fecaca;
+      background-color: #525252;
     }
 
     .slidingCard {
@@ -22,7 +22,6 @@
       position: absolute;
       top: 50%;
       transform: translateY(-50%);
-      background: rgba(239, 68, 68, 0.95);
       color: white;
       padding: 0.5rem 1rem;
       border-radius: 0.5rem;
@@ -36,10 +35,20 @@
 
     .swipe-indicator.left {
       right: 1rem;
+      background: rgba(64, 64, 64, 0.95);
     }
 
     .swipe-indicator.right {
       left: 1rem;
+      background: rgba(82, 82, 82, 0.95);
+    }
+
+    .swipe-indicator.hide {
+      background: rgba(64, 64, 64, 0.95);
+    }
+
+    .swipe-indicator.favorite {
+      background: rgba(82, 82, 82, 0.95);
     }
 
     input:focus, select:focus, textarea:focus {
@@ -54,12 +63,12 @@
     </header>
 
     <section class="flex flex-auto grow flex-col">
-      <div id="storageWarning" class="bg-amber-500 text-neutral-900 p-4 m-4 rounded hidden">
+      <div id="storageWarning" class="bg-neutral-700 text-neutral-200 p-4 m-4 rounded hidden">
         <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
       </div>
 
-      <div class="bg-blue-900 text-blue-200 p-3 m-4 rounded text-sm text-center">
-        💡 <strong>Tip:</strong> Swipe left or right on event cards to hide them, or use the hide button
+      <div class="bg-neutral-800 text-neutral-300 p-3 m-4 rounded text-sm text-center">
+        <strong>Tip:</strong> Swipe left to hide events, swipe right to favorite them, or use the buttons
       </div>
 
       <div class="bg-neutral-800 p-4 m-4 rounded space-y-4">
@@ -83,7 +92,6 @@
           </label>
           <button class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded flex items-center gap-2" 
                   onclick="toggleSettings()">
-            <span>⚙️</span>
             <span>Settings</span>
           </button>
         </div>
@@ -119,7 +127,7 @@
     </section>
 
     <footer class="text-sm p-4 font-semibold text-center">
-      Swipe events to hide • Star to favorite
+      Swipe events to hide or favorite • Click star to favorite
     </footer>
   </main>
 
@@ -253,6 +261,20 @@
       renderEvents();
     }
 
+    function favoriteEvent(eventElement) {
+      const title = getEventTitle(eventElement);
+      const cleaned = title.toLowerCase().trim();
+      
+      if (!favorites.includes(cleaned)) {
+        favorites.push(cleaned);
+        saveFavorites();
+        console.log('Favorited event:', title);
+      }
+      
+      renderFavoritesList();
+      renderEvents();
+    }
+
     function unhideEvent(eventId, title, date) {
       const initialLength = hiddenEvents.length;
       hiddenEvents = hiddenEvents.filter(h => 
@@ -296,12 +318,12 @@
 
     function addSwipeHandlers(eventElement) {
       const leftIndicator = document.createElement('div');
-      leftIndicator.className = 'swipe-indicator left';
+      leftIndicator.className = 'swipe-indicator left hide';
       leftIndicator.textContent = 'HIDE';
       
       const rightIndicator = document.createElement('div');
-      rightIndicator.className = 'swipe-indicator right';
-      rightIndicator.textContent = 'HIDE';
+      rightIndicator.className = 'swipe-indicator right favorite';
+      rightIndicator.textContent = 'FAVORITE';
       
       eventElement.appendChild(leftIndicator);
       eventElement.appendChild(rightIndicator);
@@ -309,7 +331,7 @@
       const eventActions = eventElement.querySelector('.event-actions');
       if (eventActions) {
         const hideButton = document.createElement('button');
-        hideButton.className = 'bg-red-700 hover:bg-red-600 px-3 py-1 rounded text-sm';
+        hideButton.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
         hideButton.textContent = 'Hide';
         hideButton.onclick = (e) => {
           e.preventDefault();
@@ -417,7 +439,13 @@
       currentSwipeElement.classList.remove('z-10');
 
       if (Math.abs(deltaX) > swipeThreshold && deltaY < swipeRestrictY) {
-        hideEvent(currentSwipeElement);
+        if (deltaX > 0) {
+          // Right swipe - favorite
+          favoriteEvent(currentSwipeElement);
+        } else {
+          // Left swipe - hide
+          hideEvent(currentSwipeElement);
+        }
       }
 
       isDragging = false;
@@ -446,11 +474,11 @@
         
         // Update styling for favorites and hidden events
         if (isFav) {
-          event.classList.add('bg-yellow-900', 'border-yellow-600');
+          event.classList.add('bg-neutral-700', 'border-neutral-600');
           event.classList.remove('bg-neutral-800', 'border-neutral-700');
         } else {
           event.classList.add('bg-neutral-800', 'border-neutral-700');
-          event.classList.remove('bg-yellow-900', 'border-yellow-600');
+          event.classList.remove('bg-neutral-700', 'border-neutral-600');
         }
         
         if (isHidden) {
@@ -463,20 +491,20 @@
         if (starBtn) {
           if (isFav) {
             starBtn.textContent = '★';
-            starBtn.classList.add('text-yellow-400');
+            starBtn.classList.add('text-neutral-100');
             starBtn.classList.remove('text-neutral-400');
           } else {
             starBtn.textContent = '☆';
             starBtn.classList.add('text-neutral-400');
-            starBtn.classList.remove('text-yellow-400');
+            starBtn.classList.remove('text-neutral-100');
           }
         }
 
-        const hideBtn = event.querySelector('.bg-red-700, .bg-green-700');
-        if (hideBtn) {
+        const hideBtn = event.querySelector('.bg-neutral-700:not(.star-button), .bg-green-700');
+        if (hideBtn && hideBtn.textContent.includes('ide')) {
           if (isHidden) {
             hideBtn.textContent = 'Unhide';
-            hideBtn.className = 'bg-green-700 hover:bg-green-600 px-3 py-1 rounded text-sm';
+            hideBtn.className = 'bg-neutral-600 hover:bg-neutral-500 px-3 py-1 rounded text-sm';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -484,7 +512,7 @@
             };
           } else {
             hideBtn.textContent = 'Hide';
-            hideBtn.className = 'bg-red-700 hover:bg-red-600 px-3 py-1 rounded text-sm';
+            hideBtn.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
             hideBtn.onclick = (e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -549,10 +577,11 @@
         div.className = 'flex justify-between items-center p-2 bg-neutral-700 rounded';
         
         const span = document.createElement('span');
+        span.className = 'text-neutral-100';
         span.textContent = fav;
         
         const button = document.createElement('button');
-        button.className = 'bg-red-700 hover:bg-red-600 px-2 py-1 rounded text-xs';
+        button.className = 'bg-neutral-600 hover:bg-neutral-500 px-2 py-1 rounded text-xs';
         button.textContent = 'Remove';
         button.onclick = () => removeFavorite(fav);
         
