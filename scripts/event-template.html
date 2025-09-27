@@ -1,0 +1,28 @@
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="{e.title.lower()}" data-venue="{e.venue.lower()}" data-date="{e.date_str}">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="{e.link}" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      {e.title}
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    {e.venue}
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      {e.date_str}
+    </span>
+    {f'<span class="time bg-neutral-700 px-3 py-1 rounded font-medium">{e.time}</span>' if e.time else ''}
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="{e.tickets}" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, '{escaped_title}')">
+      ☆
+    </button>
+  </div>
+</div>
