@@ -1,0 +1,2660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Upcoming Concerts</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    input:valid {
+      background-color: #404040;
+    }
+
+    input:invalid {
+      background-color: #525252;
+    }
+
+    .slidingCard {
+      transition: transform 0.15s ease-in-out;
+    }
+    
+    .swipe-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .swipe-indicator.left {
+      right: 1rem;
+      background: rgba(64, 64, 64, 0.95);
+    }
+
+    .swipe-indicator.right {
+      left: 1rem;
+      background: rgba(82, 82, 82, 0.95);
+    }
+
+    .swipe-indicator.hide {
+      background: rgba(64, 64, 64, 0.95);
+    }
+
+    .swipe-indicator.favorite {
+      background: rgba(82, 82, 82, 0.95);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #525252;
+    }
+  </style>
+</head>
+<body class="font-mono bg-neutral-900 text-neutral-50 min-h-screen">
+  <main class="flex flex-col min-h-screen">
+    <header class="text-3xl p-4 font-semibold">
+      Upcoming Concerts
+    </header>
+
+    <section class="flex flex-auto grow flex-col">
+      <div id="storageWarning" class="bg-neutral-700 text-neutral-200 p-4 m-4 rounded hidden">
+        <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
+      </div>
+
+      <div class="bg-neutral-800 text-neutral-300 p-3 m-4 rounded text-sm text-center">
+        <strong>Tip:</strong> Swipe left to hide events, swipe right to favorite them, or use the buttons
+      </div>
+
+      <div class="bg-neutral-800 p-4 m-4 rounded space-y-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input type="text" id="search" placeholder="Search events..." 
+                 class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400" />
+          <select id="venueFilter" 
+                  class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400">
+            <option value="">All Venues</option>
+            <option value="Cat’s Cradle">Cat’s Cradle</option>
+<option value="Cat’s Cradle Back Room">Cat’s Cradle Back Room</option>
+<option value="Haw River Ballroom">Haw River Ballroom</option>
+<option value="Kings">Kings</option>
+<option value="Local 506">Local 506</option>
+<option value="Motor Co Music">Motor Co Music</option>
+<option value="Motorco Music Hall">Motorco Music Hall</option>
+          </select>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="favoritesOnly" class="w-4 h-4" />
+            <span>Show only favorites</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showHidden" class="w-4 h-4" />
+            <span>Show hidden events</span>
+          </label>
+          <button class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded flex items-center gap-2" 
+                  onclick="toggleSettings()">
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="settingsPanel" class="bg-neutral-800 p-4 m-4 rounded hidden max-w-2xl">
+        <h2 class="text-xl font-semibold mb-4">Favorite Keywords</h2>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." 
+                 class="flex-1 p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600" />
+          <button onclick="addFavorite()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Add</button>
+        </div>
+        <div id="favoritesList" class="space-y-2 mb-4"></div>
+        <h3 class="text-lg font-semibold mb-2">Import/Export</h3>
+        <textarea id="favoritesJson" rows="4" 
+                  class="w-full p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 mb-2"></textarea>
+        <div class="flex gap-2">
+          <button onclick="exportFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Export</button>
+          <button onclick="importFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Import</button>
+        </div>
+      </div>
+
+      <div id="events" class="space-y-4 m-4">
+        <div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="broadway rave : a musical theater dance party" data-venue="motor co music" data-date="Friday November 21 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/broadway-rave-11-21-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      BROADWAY RAVE : A MUSICAL THEATER DANCE PARTY
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday November 21 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'BROADWAY RAVE : A MUSICAL THEATER DANCE PARTY')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="they are gutting a body of water" data-venue="kings" data-date="Saturday November 22 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/they-are-gutting-a-body-of-water/kings/raleigh-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      They Are Gutting a Body of Water
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Kings
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 22 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/33246845/they-are-gutting-a-body-of-waterwith-cashier-raleigh-kings-cats-cradle-presents?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'They Are Gutting a Body of Water')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="speed stick" data-venue="cat’s cradle back room" data-date="Saturday November 22 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/speed-stick-3/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Speed Stick
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 22 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 8 pm : Show: 9 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/91683271/speed-stickwith-saul-goodeblack-moss-of-part-time-cooks-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Speed Stick')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="chloe ament with tori templet" data-venue="local 506" data-date="Saturday November 22 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/chloe-ament-with-tori-templet/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Chloe Ament with Tori Templet
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 22 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/31434412/chloe-ament-with-tori-templet-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Chloe Ament with Tori Templet')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="debí tirar más fiestas | the bad bunny party" data-venue="motor co music" data-date="Saturday November 22 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/debi-tirar-mas-fiestas-11-22-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      DEBÍ TIRAR MÁS FIESTAS | The Bad Bunny Party
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 22 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'DEBÍ TIRAR MÁS FIESTAS | The Bad Bunny Party')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="book harvest : holiday fun-raiser" data-venue="motor co music" data-date="Sunday November 23 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/book-harvest/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      BOOK HARVEST : HOLIDAY FUN-RAISER
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday November 23 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">16:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'BOOK HARVEST : HOLIDAY FUN-RAISER')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="sydney rose – i know what i want tour" data-venue="cat’s cradle back room" data-date="Monday November 24 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/sydney-rose-i-know-what-i-want-tour/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Sydney Rose – I Know What I Want Tour
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Monday November 24 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/43871123/sydney-rose-i-know-what-i-want-tourwith-emma-andersennoah-levine-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Sydney Rose – I Know What I Want Tour')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="giant robot fight club vs. the giant freak from planet z" data-venue="motor co music" data-date="Friday November 28 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/giant-robot-fight-club-2/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      GIANT ROBOT FIGHT CLUB Vs. The Giant Freak From Planet Z
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday November 28 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'GIANT ROBOT FIGHT CLUB Vs. The Giant Freak From Planet Z')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="philstock ’25" data-venue="cat’s cradle back room" data-date="Saturday November 29 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/philstock-25/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Philstock ’25
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 29 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 6 pm : Show: 6:30 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/50648569/philstock-25with-more-cowbellrattletrapshoney-pumpkinswyatt-easterling-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Philstock ’25')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="crazy chester: a very carrboro tribute to the band & the last waltz" data-venue="cat’s cradle" data-date="Saturday November 29 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/crazy-chester-a-very-carrboro-tribute-to-the-band-the-last-waltz-3/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Crazy Chester: A Very Carrboro Tribute To The Band & The Last Waltz
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 29 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 7:45 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/70006858/crazy-chestera-very-carrboro-tribute-to-the-band-the-last-waltzwith-sugaree-string-society-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Crazy Chester: A Very Carrboro Tribute To The Band & The Last Waltz')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="rock n shop record fair : holiday edition" data-venue="motor co music" data-date="Saturday November 29 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/rock-n-shop-record-fair-holiday-edition/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Rock N Shop Record Fair : Holiday Edition
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday November 29 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">12:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Rock N Shop Record Fair : Holiday Edition')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="the spill canvas & mae" data-venue="motor co music" data-date="Sunday November 30 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/the-spill-canvas-mae/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      THE SPILL CANVAS & MAE
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday November 30 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">19:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'THE SPILL CANVAS & MAE')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="alice gerrard presents custom made woman" data-venue="cat’s cradle back room" data-date="Tuesday December 02 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/custom-made-woman/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Alice Gerrard presents Custom Made Woman
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 02 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 5 pm : Show: 6 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://flyleafbooks.com/event/offsite-gerrard-2025" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Alice Gerrard presents Custom Made Woman')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="bonnie “prince” billy" data-venue="haw river ballroom" data-date="Tuesday December 02 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/bonnie-prince-billy/haw-river-ballroom/saxapahaw-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Bonnie “Prince” Billy
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Haw River Ballroom
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 02 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/35578302/bonnie-princebillywith-dawn-landesmatt-kivel-saxapahaw-haw-river-ballroom-cats-cradle-presents?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Bonnie “Prince” Billy')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="little image" data-venue="cat’s cradle" data-date="Tuesday December 02 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/little-image-2/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Little Image
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 02 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/68526096/little-imagewith-carver-commodore-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Little Image')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="superintendo with violets and alcantara" data-venue="local 506" data-date="Tuesday December 02 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/superintendo-with-violets-and-alcantara/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Superintendo with Violets and Alcantara
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 02 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/82120735/superintendo-with-violets-and-alcantara-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Superintendo with Violets and Alcantara')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="ryan davis + the roadhouse band" data-venue="cat’s cradle back room" data-date="Wednesday December 03 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/ryan-davis-the-roadhouse-band/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Ryan Davis + The Roadhouse Band
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Wednesday December 03 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/49803648/ryan-davis-the-roadhouse-bandwith-arbor-labor-union-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Ryan Davis + The Roadhouse Band')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="black polish" data-venue="cat’s cradle back room" data-date="Thursday December 04 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/black-polish/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Black Polish
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 04 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="javascript:void(0)" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Black Polish')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="myka lace, kait polgar, roxanne fortney, laura ivy" data-venue="cat’s cradle back room" data-date="Thursday December 04 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/myka-lace-kait-polgar-roxanne-fortney-laura-ivy/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Myka Lace, Kait Polgar, Roxanne Fortney, Laura Ivy
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 04 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/53139188/myka-lacekait-polgarroxanne-fortneylaura-ivy-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Myka Lace, Kait Polgar, Roxanne Fortney, Laura Ivy')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="willis" data-venue="cat’s cradle" data-date="Thursday December 04 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/willis/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Willis
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 04 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/74614536/williswith-hotel-fiction-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Willis')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="young culture with wakelee and bike routes" data-venue="local 506" data-date="Thursday December 04 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/young-culture-with-wakelee-and-bike-routes/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Young Culture with Wakelee and Bike Routes
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 04 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://tickets.venuepilot.com/e/young-culture-2025-12-04-local-506-chapel-hill-43a8a0" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Young Culture with Wakelee and Bike Routes')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="solfish / weekend therapy / dialtone / roman spring" data-venue="motor co music" data-date="Thursday December 04 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/solfish-weekend-therapy-dialtone-roman-spring/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      SOLFISH / WEEKEND THERAPY / DIALTONE / ROMAN SPRING
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 04 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">19:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'SOLFISH / WEEKEND THERAPY / DIALTONE / ROMAN SPRING')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="susto stringband, oliver hazard" data-venue="cat’s cradle" data-date="Friday December 05 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/susto-stringband-oliver-hazard/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Susto Stringband, Oliver Hazard
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 05 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/62165064/susto-stringbandoliver-hazard-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Susto Stringband, Oliver Hazard')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="with love" data-venue="cat’s cradle back room" data-date="Friday December 05 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/with-love-4/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      With Love
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 05 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/78849846/with-lovewith-kenny-wavinsonfolkknot-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'With Love')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="colin cutler and hot pepper jam with the rattletraps" data-venue="local 506" data-date="Friday December 05 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/colin-cutler-and-hot-pepper-jam-with-the-rattletraps/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Colin Cutler and Hot Pepper Jam with The Rattletraps
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 05 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/48648203/colin-cutler-and-hot-pepper-jam-with-the-rattletraps-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Colin Cutler and Hot Pepper Jam with The Rattletraps')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="let it happen : tame impala dance party" data-venue="motor co music" data-date="Friday December 05 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/let-it-happen-12-5-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      LET IT HAPPEN : TAME IMPALA DANCE PARTY
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 05 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'LET IT HAPPEN : TAME IMPALA DANCE PARTY')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="the old ceremony" data-venue="cat’s cradle back room" data-date="Saturday December 06 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/the-old-ceremony-2/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      The Old Ceremony
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 06 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/63157022/the-old-ceremony-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'The Old Ceremony')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="megayacht with erie choir and three body problem" data-venue="local 506" data-date="Saturday December 06 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/megayacht-with-erie-choir-and-three-body-problem/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Megayacht with Erie Choir and Three Body Problem
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 06 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/65690526/megayacht-with-erie-choir-and-three-body-problem-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Megayacht with Erie Choir and Three Body Problem')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="take on me : the best of the 80’s on vinyl" data-venue="motor co music" data-date="Saturday December 06 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/take-on-me-12-6-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      TAKE ON ME : The Best of the 80’s on Vinyl
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 06 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">19:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'TAKE ON ME : The Best of the 80’s on Vinyl')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="chokecherry" data-venue="cat’s cradle back room" data-date="Sunday December 07 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/chokecherry/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      chokecherry
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday December 07 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/76714223/chokecherrywith-the-sewing-club-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'chokecherry')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="jd mcpherson – socks: a rock n’ roll christmas tour" data-venue="cat’s cradle" data-date="Tuesday December 09 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/jd-mcpherson-socks-a-rock-n-roll-christmas-tour/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      JD McPherson – SOCKS: A Rock N’ Roll Christmas Tour
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 09 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/54431184/jd-mcpherson-socksa-rock-nroll-christmas-tourwith-melissa-carper-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'JD McPherson – SOCKS: A Rock N’ Roll Christmas Tour')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="algernon cadwallader" data-venue="motor co music" data-date="Thursday December 11 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/algernon-cadwallader-12-11-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      ALGERNON CADWALLADER
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday December 11 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'ALGERNON CADWALLADER')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="eilen jewell, amanda anne platt & the honeycutters" data-venue="cat’s cradle" data-date="Friday December 12 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/eilen-jewell-amanda-anne-platt-the-honeycutters/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Eilen Jewell, Amanda Anne Platt & The Honeycutters
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 12 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/79847114/eilen-jewellamanda-anne-platt-the-honeycutters-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Eilen Jewell, Amanda Anne Platt & The Honeycutters')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="jake xerxes fussell" data-venue="haw river ballroom" data-date="Friday December 12 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/jake-xerxes-fussell-2/haw-river-ballroom/saxapahaw-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Jake Xerxes Fussell
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Haw River Ballroom
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 12 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/64500303/jake-xerxes-fussellwith-jennifer-castle-saxapahaw-haw-river-ballroom-cats-cradle-presents?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Jake Xerxes Fussell')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="robert lester folsom" data-venue="cat’s cradle back room" data-date="Friday December 12 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/robert-lester-folsom/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Robert Lester Folsom
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 12 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/36108137/robert-lester-folsomwith-lily-seabird-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Robert Lester Folsom')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="bob fleming and the cambria iron co. with jacob danielsen-moore, cliff b worsham, and ryan lockhart" data-venue="local 506" data-date="Friday December 12 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/bob-fleming-and-the-cambria-iron-co-with-jacob-danielsen-moore-cliff-b-worsham-and-ryan-lockhart/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Bob Fleming and the Cambria Iron Co. with Jacob Danielsen-Moore, Cliff B Worsham, and Ryan Lockhart
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 12 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/81693034/bob-fleming-and-the-cambria-iron-cowith-jacob-danielsenmoorecliff-b-worshamand-ryan-lockhart-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Bob Fleming and the Cambria Iron Co. with Jacob Danielsen-Moore, Cliff B Worsham, and Ryan Lockhart')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="gimme gimme disco" data-venue="motor co music" data-date="Friday December 12 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/gimme-gimme-disco-12-12-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      GIMME GIMME DISCO
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 12 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'GIMME GIMME DISCO')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="chatham county line holiday tour 2025" data-venue="haw river ballroom" data-date="Saturday December 13 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/chatham-county-line-holiday-tour-2025/haw-river-ballroom/saxapahaw-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Chatham County Line Holiday Tour 2025
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Haw River Ballroom
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 13 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7:30 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/33410424/chatham-county-line-holiday-tour-2025with-johnny-irionjay-brown-saxapahaw-haw-river-ballroom-cats-cradle-presents?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Chatham County Line Holiday Tour 2025')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="magnolia & johnson electric co." data-venue="cat’s cradle back room" data-date="Saturday December 13 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/magnolia-johnson-electric-co/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Magnolia & Johnson Electric Co.
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 13 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/84311485/magnolia-johnson-electric-co-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Magnolia & Johnson Electric Co.')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="southern culture on the skids" data-venue="cat’s cradle" data-date="Saturday December 13 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/southern-culture-on-the-skids-5/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Southern Culture on the Skids
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 13 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/62796572/southern-culture-on-the-skids-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Southern Culture on the Skids')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="night! night! with the eradicator, dollars, taxes and snide" data-venue="local 506" data-date="Saturday December 13 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/night-night-with-the-eradicator-dollars-taxes-and-snide/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Night! Night! with The Eradicator, Dollars, Taxes and Snide
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 13 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/57429619/nightnightwith-the-eradicatordollarstaxes-and-snide-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Night! Night! with The Eradicator, Dollars, Taxes and Snide')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="the wusses : holiday show!" data-venue="motor co music" data-date="Saturday December 13 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/the-wusses-holiday-show/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      THE WUSSES : HOLIDAY SHOW!
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 13 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">19:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'THE WUSSES : HOLIDAY SHOW!')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="the callous daoboys" data-venue="motor co music" data-date="Tuesday December 16 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/the-callous-daoboys/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      THE CALLOUS DAOBOYS
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 16 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">18:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'THE CALLOUS DAOBOYS')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="he is legend hootenanny 3" data-venue="cat’s cradle" data-date="Friday December 19 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/he-is-legend-hootenanny-3/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      He Is Legend Hootenanny 3
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 19 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 5 pm : Show: 6 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/92456970/he-is-legend-hootenanny-3with-asgvannathoughtcrimesvalletta-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'He Is Legend Hootenanny 3')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="weird god with gio mesto and ex iguana" data-venue="local 506" data-date="Friday December 19 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/weird-god-with-gio-mesto-and-ex-iguana/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Weird God with Gio Mesto and Ex Iguana
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 19 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Show: 8:30 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/88952998/weird-god-with-gio-mesto-and-ex-iguana-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Weird God with Gio Mesto and Ex Iguana')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="all your friends : the indie party" data-venue="motor co music" data-date="Friday December 19 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/all-your-friends/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      All Your Friends : The Indie Party
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday December 19 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'All Your Friends : The Indie Party')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="john howie jr. & the rosewood bluff" data-venue="cat’s cradle back room" data-date="Saturday December 20 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/john-howie-jr-the-rosewood-bluff/cats-cradle-back-room/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      John Howie Jr. & the Rosewood Bluff
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle Back Room
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 20 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 6:30 pm : Show: 7 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/63065102/john-howie-jrthe-rosewood-bluffwith-ramona-and-the-holy-smokesreal-companion-carrboro-cats-cradle-back-room?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'John Howie Jr. & the Rosewood Bluff')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="whores with rickshaw billie’s burger patrol" data-venue="local 506" data-date="Saturday December 20 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/whores-with-rickshaw-billies-burger-patrol/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Whores with Rickshaw Billie’s Burger Patrol
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 20 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/71401987/whores-with-rickshaw-billies-burger-patrol-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Whores with Rickshaw Billie’s Burger Patrol')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="slow teeth & friends" data-venue="motor co music" data-date="Saturday December 20 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/slow-teeth/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Slow Teeth & Friends
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 20 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Slow Teeth & Friends')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="ken fitts & the jedi masters with coyote vs. acme" data-venue="local 506" data-date="Sunday December 21 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/ken-fitts-the-jedi-masters-with-coyote-vs-acme/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Ken Fitts & The Jedi Masters with Coyote Vs. Acme
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday December 21 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/67800337/ken-fitts-the-jedi-masters-with-coyote-vsacme-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Ken Fitts & The Jedi Masters with Coyote Vs. Acme')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="rebirth brass band" data-venue="motor co music" data-date="Saturday December 27 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/rebirth-brass-band-12-27-25/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      REBIRTH BRASS BAND
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday December 27 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'REBIRTH BRASS BAND')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="hemlock theory and rbnx with negative raxxx and the frozen charlottes" data-venue="local 506" data-date="Sunday December 28 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://local506.com/event/hemlock-theory-and-rbnx-with-negative-raxxx-and-the-frozen-charlottes/local-506/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Hemlock Theory and RBNX with Negative Raxxx and The Frozen Charlottes
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Local 506
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday December 28 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7 pm // Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/93069569/hemlock-theory-and-rbnx-with-negative-raxxx-and-the-frozen-charlottes-chapel-hill-local-506?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Hemlock Theory and RBNX with Negative Raxxx and The Frozen Charlottes')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="cosmic charlie – high energy grateful dead" data-venue="cat’s cradle" data-date="Tuesday December 30 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/cosmic-charlie-high-energy-grateful-dead/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Cosmic Charlie – High energy Grateful Dead
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday December 30 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 7:30 pm : Show: 8 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/70915209/cosmic-charlie-high-energy-grateful-deadwith-liquid-garcia-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Cosmic Charlie – High energy Grateful Dead')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="cosmic charlie new year’s eve bash 2026" data-venue="cat’s cradle" data-date="Wednesday December 31 2025">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://catscradle.com/event/cosmic-charlie-new-years-eve-bash-2026/cats-cradle/carrboro-north-carolina/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Cosmic Charlie New Year’s Eve Bash 2026
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Cat’s Cradle
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Wednesday December 31 2025
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">Doors: 8 pm : Show: 8:30 pm</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="https://www.etix.com/ticket/p/30449023/cosmic-charlie-new-years-eve-bash-2026with-aint-sisters-carrboro-cats-cradle?partner_id=100" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Cosmic Charlie New Year’s Eve Bash 2026')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="wetouchgrass presents : anime rave" data-venue="motor co music" data-date="Saturday January 10 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/we-touch-grass-anime-rave/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      WeTouchGrass Presents : Anime Rave
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday January 10 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">21:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'WeTouchGrass Presents : Anime Rave')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="fleshwater" data-venue="motor co music" data-date="Tuesday January 13 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/fleshwater/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      FLESHWATER
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday January 13 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'FLESHWATER')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="koo koo" data-venue="motor co music" data-date="Sunday January 18 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/koo-koo-camp-spork/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      KOO KOO
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday January 18 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">13:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'KOO KOO')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="ellise : the pretty evil tour" data-venue="motor co music" data-date="Tuesday January 27 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/ellise/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      ELLISE : THE PRETTY EVIL TOUR
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday January 27 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'ELLISE : THE PRETTY EVIL TOUR')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="logan crosby" data-venue="motor co music" data-date="Thursday January 29 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/logan-crosby/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      LOGAN CROSBY
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday January 29 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'LOGAN CROSBY')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="anne-claire" data-venue="motor co music" data-date="Saturday January 31 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/anne-claire/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      ANNE-CLAIRE
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday January 31 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'ANNE-CLAIRE')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="night moves" data-venue="motor co music" data-date="Sunday February 01 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/night-moves/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      NIGHT MOVES
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday February 01 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'NIGHT MOVES')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="mat kerekes" data-venue="motor co music" data-date="Thursday February 12 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/mat-kerekes/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      MAT KEREKES
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday February 12 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'MAT KEREKES')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="vincent neil emerson" data-venue="motor co music" data-date="Friday February 20 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/vincent-neil-emerson2/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      VINCENT NEIL EMERSON
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Friday February 20 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'VINCENT NEIL EMERSON')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="ratboys : when the sun explodes tour 2026" data-venue="motor co music" data-date="Sunday March 08 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/ratboys/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      RATBOYS : When the Sun Explodes Tour 2026
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Sunday March 08 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'RATBOYS : When the Sun Explodes Tour 2026')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="landon conrath" data-venue="motor co music" data-date="Monday March 09 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/landon-conrath/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      LANDON CONRATH
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Monday March 09 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'LANDON CONRATH')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="capstan : cultural divide 10 year anniversary tour" data-venue="motor co music" data-date="Thursday March 19 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/capstan/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      Capstan : Cultural Divide 10 Year Anniversary Tour
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Thursday March 19 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">19:30</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'Capstan : Cultural Divide 10 Year Anniversary Tour')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="the wedding present : seamonsters 35th anniversary tour" data-venue="motor co music" data-date="Saturday April 04 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/the-wedding-present-4-4-26/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      THE WEDDING PRESENT : Seamonsters 35th Anniversary Tour
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Saturday April 04 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'THE WEDDING PRESENT : Seamonsters 35th Anniversary Tour')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="natewantstobattle : phantom burial tour" data-venue="motor co music" data-date="Monday April 06 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/natewantstobattle/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      NateWantsToBattle : Phantom Burial Tour
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Monday April 06 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'NateWantsToBattle : Phantom Burial Tour')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="mei semones" data-venue="motor co music" data-date="Tuesday April 14 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/mei-semones/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      MEI SEMONES
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday April 14 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'MEI SEMONES')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="vnv nation - an evening with" data-venue="motor co music" data-date="Wednesday April 15 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/vnv-nation-an-evening-with/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      VNV NATION - AN EVENING WITH
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Wednesday April 15 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'VNV NATION - AN EVENING WITH')">
+      ☆
+    </button>
+  </div>
+</div>
+<div class="event slidingCard bg-neutral-800 border border-neutral-700 text-neutral-50 p-4 rounded relative cursor-grab active:cursor-grabbing hover:bg-neutral-700 transition-colors" 
+     data-title="flyte (rescheduled from 10/25/25)" data-venue="motor co music" data-date="Tuesday May 05 2026">
+  <h2 class="text-xl font-semibold mb-2">
+    <a href="https://motorcomusic.com/event/flyte/" target="_blank" rel="noopener" class="hover:underline transition-colors">
+      FLYTE (Rescheduled from 10/25/25)
+    </a>
+  </h2>
+  <p class="venue text-neutral-400 text-sm uppercase tracking-wider font-medium mb-3">
+    Motor Co Music
+  </p>
+  <div class="event-details flex flex-wrap gap-3 mb-4 text-sm">
+    <span class="date bg-neutral-700 px-3 py-1 rounded font-medium">
+      Tuesday May 05 2026
+    </span>
+    <span class="time bg-neutral-700 px-3 py-1 rounded font-medium">20:00</span>
+  </div>
+  <div class="event-actions flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+    <a class="bg-neutral-700 hover:bg-neutral-600 text-neutral-50 px-4 py-2 rounded text-center text-sm font-medium transition-colors w-full sm:w-auto" 
+       href="#" target="_blank" rel="noopener">
+      Buy Tickets
+    </a>
+    <button class="star-button text-2xl p-2 rounded-full hover:bg-neutral-600 transition-colors text-neutral-400 self-center" 
+            aria-label="Toggle favorite" 
+            onclick="toggleFavoriteFromEvent(this, 'FLYTE (Rescheduled from 10/25/25)')">
+      ☆
+    </button>
+  </div>
+</div>
+
+      </div>
+
+      <div id="noEventsMessage" class="text-center py-12 text-neutral-400 italic hidden">
+        <p>No events match your current filters.</p>
+      </div>
+    </section>
+
+    <footer class="text-sm p-4 font-semibold text-center">
+      Swipe events to hide or favorite • Click star to favorite
+    </footer>
+  </main>
+
+  <script>
+    const searchInput = document.getElementById('search');
+    const venueSelect = document.getElementById('venueFilter');
+    const favoritesOnly = document.getElementById('favoritesOnly');
+    const showHidden = document.getElementById('showHidden');
+    const favoritesList = document.getElementById('favoritesList');
+    const newFavoriteInput = document.getElementById('newFavoriteInput');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const favoritesJson = document.getElementById('favoritesJson');
+    const eventsContainer = document.getElementById('events');
+    const noEventsMessage = document.getElementById('noEventsMessage');
+    const storageWarning = document.getElementById('storageWarning');
+
+    let favorites = [];
+    let hiddenEvents = [];
+    let allEventElements = [];
+    let storageAvailable = true;
+
+    // Touch/swipe handling variables
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let swipeThreshold = 100;
+    let swipeRestrictY = 50;
+    let isDragging = false;
+    let currentSwipeElement = null;
+
+    // Check if localStorage is available and working
+    function checkStorageAvailability() {
+      try {
+        const test = 'test';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        storageAvailable = true;
+        // Load existing data
+        const storedFavorites = localStorage.getItem('favorites');
+        const storedHidden = localStorage.getItem('hiddenEvents');
+        if (storedFavorites) {
+          favorites = JSON.parse(storedFavorites);
+        }
+        if (storedHidden) {
+          hiddenEvents = JSON.parse(storedHidden);
+          cleanupHiddenEvents();
+        }
+      } catch (e) {
+        storageAvailable = false;
+        storageWarning.classList.remove('hidden');
+        console.warn('localStorage not available, favorites and hidden events will be session-only');
+      }
+    }
+
+    function saveFavorites() {
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+        } catch (e) {
+          console.warn('Failed to save favorites to localStorage');
+        }
+      }
+    }
+
+    function saveHiddenEvents() {
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('hiddenEvents', JSON.stringify(hiddenEvents));
+        } catch (e) {
+          console.warn('Failed to save hidden events to localStorage');
+        }
+      }
+    }
+
+    function cleanupHiddenEvents() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(hiddenEvent => {
+        try {
+          const eventDate = new Date(hiddenEvent.date);
+          return eventDate >= yesterday;
+        } catch (e) {
+          return true;
+        }
+      });
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+      }
+    }
+
+    function isEventHidden(eventId, eventDate, eventTitle) {
+      return hiddenEvents.some(hidden => 
+        hidden.id === eventId || 
+        (hidden.title && hidden.date && hidden.title === eventTitle && hidden.date === eventDate)
+      );
+    }
+
+    function getEventTitle(eventElement) {
+      return eventElement.dataset.title || eventElement.querySelector('h2')?.textContent?.trim() || '';
+    }
+
+    function getEventDate(eventElement) {
+      return eventElement.dataset.date || '';
+    }
+
+    function getEventId(eventElement) {
+      return eventElement.dataset.eventId || '';
+    }
+
+    function hideEvent(eventElement) {
+      const eventId = getEventId(eventElement);
+      const title = getEventTitle(eventElement);
+      const date = getEventDate(eventElement);
+      
+      const hiddenEvent = {
+        id: eventId,
+        title: title,
+        date: date,
+        timestamp: Date.now()
+      };
+      
+      if (!isEventHidden(eventId, date, title)) {
+        hiddenEvents.push(hiddenEvent);
+        saveHiddenEvents();
+        console.log('Hidden event:', hiddenEvent);
+      }
+      
+      renderEvents();
+    }
+
+    function favoriteEvent(eventElement) {
+      const title = getEventTitle(eventElement);
+      const cleaned = title.toLowerCase().trim();
+      
+      if (!favorites.includes(cleaned)) {
+        favorites.push(cleaned);
+        saveFavorites();
+        console.log('Favorited event:', title);
+      }
+      
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function unhideEvent(eventId, title, date) {
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(h => 
+        !(h.id === eventId || (h.title === title && h.date === date))
+      );
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+        console.log('Unhidden event:', { id: eventId, title, date });
+      }
+      
+      renderEvents();
+    }
+
+    function escapeRegex(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function matchesFavorite(title, favorites) {
+      if (!favorites || favorites.length === 0) return false;
+      
+      title = title.toLowerCase();
+      return favorites.some(fav => {
+        try {
+          fav = fav.toLowerCase().trim();
+          if (!fav) return false;
+          
+          if (fav.length <= 4) {
+            const escapedFav = escapeRegex(fav);
+            const wordRegex = new RegExp("\\b" + escapedFav + "\\b", "i");
+            return wordRegex.test(title);
+          } else {
+            return title.includes(fav);
+          }
+        } catch (e) {
+          console.warn('Error matching favorite:', fav, e);
+          return false;
+        }
+      });
+    }
+
+    function addSwipeHandlers(eventElement) {
+      const leftIndicator = document.createElement('div');
+      leftIndicator.className = 'swipe-indicator left hide';
+      leftIndicator.textContent = 'HIDE';
+      
+      const rightIndicator = document.createElement('div');
+      rightIndicator.className = 'swipe-indicator right favorite';
+      rightIndicator.textContent = 'FAVORITE';
+      
+      eventElement.appendChild(leftIndicator);
+      eventElement.appendChild(rightIndicator);
+
+      const eventActions = eventElement.querySelector('.event-actions');
+      if (eventActions) {
+        const hideButton = document.createElement('button');
+        hideButton.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
+        hideButton.textContent = 'Hide';
+        hideButton.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          hideEvent(eventElement);
+        };
+        eventActions.appendChild(hideButton);
+      }
+
+      eventElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      eventElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      eventElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+      eventElement.addEventListener('mousedown', handleMouseStart);
+      eventElement.addEventListener('mousemove', handleMouseMove);
+      eventElement.addEventListener('mouseup', handleMouseEnd);
+      eventElement.addEventListener('mouseleave', handleMouseEnd);
+    }
+
+    function handleTouchStart(e) {
+      const touch = e.touches[0];
+      startSwipe(touch.clientX, touch.clientY, e.currentTarget);
+    }
+
+    function handleTouchMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      moveSwipe(touch.clientX, touch.clientY);
+    }
+
+    function handleTouchEnd(e) {
+      endSwipe();
+    }
+
+    function handleMouseStart(e) {
+      startSwipe(e.clientX, e.clientY, e.currentTarget);
+    }
+
+    function handleMouseMove(e) {
+      if (!isDragging) return;
+      moveSwipe(e.clientX, e.clientY);
+    }
+
+    function handleMouseEnd(e) {
+      endSwipe();
+    }
+
+    function startSwipe(x, y, element) {
+      touchStartX = x;
+      touchStartY = y;
+      currentX = x;
+      currentY = y;
+      isDragging = true;
+      currentSwipeElement = element;
+      element.classList.add('z-10');
+    }
+
+    function moveSwipe(x, y) {
+      if (!isDragging || !currentSwipeElement) return;
+
+      currentX = x;
+      currentY = y;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      if (deltaY > swipeRestrictY) {
+        return;
+      }
+
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      
+      if (Math.abs(deltaX) > 20) {
+        const opacity = Math.min(Math.abs(deltaX) / swipeThreshold, 1);
+        if (deltaX > 0) {
+          rightIndicator.style.opacity = opacity;
+          leftIndicator.style.opacity = 0;
+        } else {
+          leftIndicator.style.opacity = opacity;
+          rightIndicator.style.opacity = 0;
+        }
+      } else {
+        leftIndicator.style.opacity = 0;
+        rightIndicator.style.opacity = 0;
+      }
+
+      currentSwipeElement.style.transform = `translateX(${deltaX * 0.3}px)`;
+    }
+
+    function endSwipe() {
+      if (!isDragging || !currentSwipeElement) return;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      currentSwipeElement.style.transform = '';
+      
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      if (leftIndicator) leftIndicator.style.opacity = 0;
+      if (rightIndicator) rightIndicator.style.opacity = 0;
+
+      currentSwipeElement.classList.remove('z-10');
+
+      if (Math.abs(deltaX) > swipeThreshold && deltaY < swipeRestrictY) {
+        if (deltaX > 0) {
+          // Right swipe - favorite
+          favoriteEvent(currentSwipeElement);
+        } else {
+          // Left swipe - hide
+          hideEvent(currentSwipeElement);
+        }
+      }
+
+      isDragging = false;
+      currentSwipeElement = null;
+      touchStartX = 0;
+      touchStartY = 0;
+      currentX = 0;
+      currentY = 0;
+    }
+
+    function renderEvents() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const venueFilter = venueSelect.value.toLowerCase();
+      const showFavoritesOnly = favoritesOnly.checked;
+      const showHiddenEvents = showHidden.checked;
+
+      cleanupHiddenEvents();
+
+      const filteredEvents = allEventElements.filter(event => {
+        const title = getEventTitle(event);
+        const venue = event.dataset.venue || '';
+        const eventId = getEventId(event);
+        const eventDate = getEventDate(event);
+        const isFav = matchesFavorite(title, favorites);
+        const isHidden = isEventHidden(eventId, eventDate, title);
+        
+        // Update styling for favorites and hidden events
+        if (isFav) {
+          event.classList.add('bg-neutral-700', 'border-neutral-600');
+          event.classList.remove('bg-neutral-800', 'border-neutral-700');
+        } else {
+          event.classList.add('bg-neutral-800', 'border-neutral-700');
+          event.classList.remove('bg-neutral-700', 'border-neutral-600');
+        }
+        
+        if (isHidden) {
+          event.classList.add('opacity-40');
+        } else {
+          event.classList.remove('opacity-40');
+        }
+        
+        const starBtn = event.querySelector('.star-button');
+        if (starBtn) {
+          if (isFav) {
+            starBtn.textContent = '★';
+            starBtn.classList.add('text-neutral-100');
+            starBtn.classList.remove('text-neutral-400');
+          } else {
+            starBtn.textContent = '☆';
+            starBtn.classList.add('text-neutral-400');
+            starBtn.classList.remove('text-neutral-100');
+          }
+        }
+
+        const hideBtn = event.querySelector('.bg-neutral-700:not(.star-button), .bg-green-700');
+        if (hideBtn && hideBtn.textContent.includes('ide')) {
+          if (isHidden) {
+            hideBtn.textContent = 'Unhide';
+            hideBtn.className = 'bg-neutral-600 hover:bg-neutral-500 px-3 py-1 rounded text-sm';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              unhideEvent(eventId, title, eventDate);
+            };
+          } else {
+            hideBtn.textContent = 'Hide';
+            hideBtn.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              hideEvent(event);
+            };
+          }
+        }
+
+        const matchesSearch = !searchTerm || title.toLowerCase().includes(searchTerm);
+        const matchesVenue = !venueFilter || venue.toLowerCase() === venueFilter;
+        const matchesFavorites = !showFavoritesOnly || isFav;
+        const matchesHidden = showHiddenEvents || !isHidden;
+
+        return matchesSearch && matchesVenue && matchesFavorites && matchesHidden;
+      });
+
+      filteredEvents.sort((a, b) => {
+        const aFav = matchesFavorite(getEventTitle(a), favorites);
+        const bFav = matchesFavorite(getEventTitle(b), favorites);
+        const aHidden = isEventHidden(getEventId(a), getEventDate(a), getEventTitle(a));
+        const bHidden = isEventHidden(getEventId(b), getEventDate(b), getEventTitle(b));
+        
+        if (aFav !== bFav) return aFav ? -1 : 1;
+        if (aHidden !== bHidden) return aHidden ? 1 : -1;
+        return 0;
+      });
+
+      eventsContainer.innerHTML = '';
+      
+      if (filteredEvents.length === 0) {
+        noEventsMessage.classList.remove('hidden');
+      } else {
+        noEventsMessage.classList.add('hidden');
+        filteredEvents.forEach(event => {
+          eventsContainer.appendChild(event);
+        });
+      }
+    }
+
+    function addFavorite() {
+      const keyword = newFavoriteInput.value.trim().toLowerCase();
+      if (keyword && !favorites.includes(keyword)) {
+        favorites.push(keyword);
+        newFavoriteInput.value = '';
+        saveFavorites();
+        renderFavoritesList();
+        renderEvents();
+      }
+    }
+
+    function removeFavorite(keyword) {
+      favorites = favorites.filter(f => f !== keyword);
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function renderFavoritesList() {
+      favoritesList.innerHTML = '';
+      favorites.forEach(fav => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-2 bg-neutral-700 rounded';
+        
+        const span = document.createElement('span');
+        span.className = 'text-neutral-100';
+        span.textContent = fav;
+        
+        const button = document.createElement('button');
+        button.className = 'bg-neutral-600 hover:bg-neutral-500 px-2 py-1 rounded text-xs';
+        button.textContent = 'Remove';
+        button.onclick = () => removeFavorite(fav);
+        
+        div.appendChild(span);
+        div.appendChild(button);
+        favoritesList.appendChild(div);
+      });
+    }
+
+    function toggleSettings() {
+      settingsPanel.classList.toggle('hidden');
+    }
+
+    function toggleFavoriteFromEvent(button, title) {
+      const substr = prompt("Enter keyword to save as favorite (default: full title):", title);
+      if (substr === null) return;
+      if (substr === '') return;
+
+      const cleaned = substr.toLowerCase().trim();
+      const isFav = favorites.includes(cleaned);
+      if (isFav) {
+        favorites = favorites.filter(f => f !== cleaned);
+      } else {
+        favorites.push(cleaned);
+      }
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function exportFavorites() {
+      favoritesJson.value = JSON.stringify(favorites, null, 2);
+    }
+
+    function importFavorites() {
+      try {
+        const imported = JSON.parse(favoritesJson.value);
+        if (Array.isArray(imported)) {
+          favorites = imported.map(f => String(f).toLowerCase().trim()).filter(Boolean);
+          saveFavorites();
+          renderFavoritesList();
+          renderEvents();
+          alert('Favorites imported successfully!');
+        } else {
+          alert('Invalid format: Expected an array of strings');
+        }
+      } catch (e) {
+        alert("Invalid JSON format: " + e.message);
+      }
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', renderEvents);
+    venueSelect.addEventListener('change', renderEvents);
+    favoritesOnly.addEventListener('change', renderEvents);
+    showHidden.addEventListener('change', renderEvents);
+    
+    newFavoriteInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addFavorite();
+      }
+    });
+
+    // Initialize on page load
+    window.addEventListener('load', () => {
+      checkStorageAvailability();
+      
+      allEventElements = Array.from(document.querySelectorAll('.event'));
+      
+      allEventElements.forEach((event, index) => {
+        if (!event.dataset.eventId) {
+          event.dataset.eventId = `event-${index}-${Date.now()}`;
+        }
+        addSwipeHandlers(event);
+      });
+      
+      renderFavoritesList();
+      renderEvents();
+    });
+  </script>
+</body>
+</html>

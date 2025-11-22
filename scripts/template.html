@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{TITLE}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    input:valid {
+      background-color: #404040;
+    }
+
+    input:invalid {
+      background-color: #525252;
+    }
+
+    .slidingCard {
+      transition: transform 0.15s ease-in-out;
+    }
+    
+    .swipe-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .swipe-indicator.left {
+      right: 1rem;
+      background: rgba(64, 64, 64, 0.95);
+    }
+
+    .swipe-indicator.right {
+      left: 1rem;
+      background: rgba(82, 82, 82, 0.95);
+    }
+
+    .swipe-indicator.hide {
+      background: rgba(64, 64, 64, 0.95);
+    }
+
+    .swipe-indicator.favorite {
+      background: rgba(82, 82, 82, 0.95);
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: 2px solid #525252;
+    }
+  </style>
+</head>
+<body class="font-mono bg-neutral-900 text-neutral-50 min-h-screen">
+  <main class="flex flex-col min-h-screen">
+    <header class="text-3xl p-4 font-semibold">
+      {{TITLE}}
+    </header>
+
+    <section class="flex flex-auto grow flex-col">
+      <div id="storageWarning" class="bg-neutral-700 text-neutral-200 p-4 m-4 rounded hidden">
+        <strong>Note:</strong> Favorites and hidden events are stored in your browser's memory for this session only. They will be lost when you refresh or close the page.
+      </div>
+
+      <div class="bg-neutral-800 text-neutral-300 p-3 m-4 rounded text-sm text-center">
+        <strong>Tip:</strong> Swipe left to hide events, swipe right to favorite them, or use the buttons
+      </div>
+
+      <div class="bg-neutral-800 p-4 m-4 rounded space-y-4">
+        <div class="flex flex-col sm:flex-row gap-4">
+          <input type="text" id="search" placeholder="Search events..." 
+                 class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400" />
+          <select id="venueFilter" 
+                  class="flex-1 p-3 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 focus:border-neutral-400">
+            <option value="">All Venues</option>
+            {{VENUES_OPTIONS}}
+          </select>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="favoritesOnly" class="w-4 h-4" />
+            <span>Show only favorites</span>
+          </label>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="showHidden" class="w-4 h-4" />
+            <span>Show hidden events</span>
+          </label>
+          <button class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded flex items-center gap-2" 
+                  onclick="toggleSettings()">
+            <span>Settings</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="settingsPanel" class="bg-neutral-800 p-4 m-4 rounded hidden max-w-2xl">
+        <h2 class="text-xl font-semibold mb-4">Favorite Keywords</h2>
+        <div class="flex gap-2 mb-4">
+          <input type="text" id="newFavoriteInput" placeholder="Add new favorite..." 
+                 class="flex-1 p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600" />
+          <button onclick="addFavorite()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Add</button>
+        </div>
+        <div id="favoritesList" class="space-y-2 mb-4"></div>
+        <h3 class="text-lg font-semibold mb-2">Import/Export</h3>
+        <textarea id="favoritesJson" rows="4" 
+                  class="w-full p-2 bg-neutral-700 text-neutral-50 rounded border border-neutral-600 mb-2"></textarea>
+        <div class="flex gap-2">
+          <button onclick="exportFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Export</button>
+          <button onclick="importFavorites()" 
+                  class="bg-neutral-700 hover:bg-neutral-600 px-4 py-2 rounded">Import</button>
+        </div>
+      </div>
+
+      <div id="events" class="space-y-4 m-4">
+        {{EVENTS}}
+      </div>
+
+      <div id="noEventsMessage" class="text-center py-12 text-neutral-400 italic hidden">
+        <p>No events match your current filters.</p>
+      </div>
+    </section>
+
+    <footer class="text-sm p-4 font-semibold text-center">
+      Swipe events to hide or favorite • Click star to favorite
+    </footer>
+  </main>
+
+  <script>
+    const searchInput = document.getElementById('search');
+    const venueSelect = document.getElementById('venueFilter');
+    const favoritesOnly = document.getElementById('favoritesOnly');
+    const showHidden = document.getElementById('showHidden');
+    const favoritesList = document.getElementById('favoritesList');
+    const newFavoriteInput = document.getElementById('newFavoriteInput');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const favoritesJson = document.getElementById('favoritesJson');
+    const eventsContainer = document.getElementById('events');
+    const noEventsMessage = document.getElementById('noEventsMessage');
+    const storageWarning = document.getElementById('storageWarning');
+
+    let favorites = [];
+    let hiddenEvents = [];
+    let allEventElements = [];
+    let storageAvailable = true;
+
+    // Touch/swipe handling variables
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    let swipeThreshold = 100;
+    let swipeRestrictY = 50;
+    let isDragging = false;
+    let currentSwipeElement = null;
+
+    // Check if localStorage is available and working
+    function checkStorageAvailability() {
+      try {
+        const test = 'test';
+        localStorage.setItem(test, test);
+        localStorage.removeItem(test);
+        storageAvailable = true;
+        // Load existing data
+        const storedFavorites = localStorage.getItem('favorites');
+        const storedHidden = localStorage.getItem('hiddenEvents');
+        if (storedFavorites) {
+          favorites = JSON.parse(storedFavorites);
+        }
+        if (storedHidden) {
+          hiddenEvents = JSON.parse(storedHidden);
+          cleanupHiddenEvents();
+        }
+      } catch (e) {
+        storageAvailable = false;
+        storageWarning.classList.remove('hidden');
+        console.warn('localStorage not available, favorites and hidden events will be session-only');
+      }
+    }
+
+    function saveFavorites() {
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('favorites', JSON.stringify(favorites));
+        } catch (e) {
+          console.warn('Failed to save favorites to localStorage');
+        }
+      }
+    }
+
+    function saveHiddenEvents() {
+      if (storageAvailable) {
+        try {
+          localStorage.setItem('hiddenEvents', JSON.stringify(hiddenEvents));
+        } catch (e) {
+          console.warn('Failed to save hidden events to localStorage');
+        }
+      }
+    }
+
+    function cleanupHiddenEvents() {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(hiddenEvent => {
+        try {
+          const eventDate = new Date(hiddenEvent.date);
+          return eventDate >= yesterday;
+        } catch (e) {
+          return true;
+        }
+      });
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+      }
+    }
+
+    function isEventHidden(eventId, eventDate, eventTitle) {
+      return hiddenEvents.some(hidden => 
+        hidden.id === eventId || 
+        (hidden.title && hidden.date && hidden.title === eventTitle && hidden.date === eventDate)
+      );
+    }
+
+    function getEventTitle(eventElement) {
+      return eventElement.dataset.title || eventElement.querySelector('h2')?.textContent?.trim() || '';
+    }
+
+    function getEventDate(eventElement) {
+      return eventElement.dataset.date || '';
+    }
+
+    function getEventId(eventElement) {
+      return eventElement.dataset.eventId || '';
+    }
+
+    function hideEvent(eventElement) {
+      const eventId = getEventId(eventElement);
+      const title = getEventTitle(eventElement);
+      const date = getEventDate(eventElement);
+      
+      const hiddenEvent = {
+        id: eventId,
+        title: title,
+        date: date,
+        timestamp: Date.now()
+      };
+      
+      if (!isEventHidden(eventId, date, title)) {
+        hiddenEvents.push(hiddenEvent);
+        saveHiddenEvents();
+        console.log('Hidden event:', hiddenEvent);
+      }
+      
+      renderEvents();
+    }
+
+    function favoriteEvent(eventElement) {
+      const title = getEventTitle(eventElement);
+      const cleaned = title.toLowerCase().trim();
+      
+      if (!favorites.includes(cleaned)) {
+        favorites.push(cleaned);
+        saveFavorites();
+        console.log('Favorited event:', title);
+      }
+      
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function unhideEvent(eventId, title, date) {
+      const initialLength = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(h => 
+        !(h.id === eventId || (h.title === title && h.date === date))
+      );
+      
+      if (hiddenEvents.length !== initialLength) {
+        saveHiddenEvents();
+        console.log('Unhidden event:', { id: eventId, title, date });
+      }
+      
+      renderEvents();
+    }
+
+    function escapeRegex(string) {
+      return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function matchesFavorite(title, favorites) {
+      if (!favorites || favorites.length === 0) return false;
+      
+      title = title.toLowerCase();
+      return favorites.some(fav => {
+        try {
+          fav = fav.toLowerCase().trim();
+          if (!fav) return false;
+          
+          if (fav.length <= 4) {
+            const escapedFav = escapeRegex(fav);
+            const wordRegex = new RegExp("\\b" + escapedFav + "\\b", "i");
+            return wordRegex.test(title);
+          } else {
+            return title.includes(fav);
+          }
+        } catch (e) {
+          console.warn('Error matching favorite:', fav, e);
+          return false;
+        }
+      });
+    }
+
+    function addSwipeHandlers(eventElement) {
+      const leftIndicator = document.createElement('div');
+      leftIndicator.className = 'swipe-indicator left hide';
+      leftIndicator.textContent = 'HIDE';
+      
+      const rightIndicator = document.createElement('div');
+      rightIndicator.className = 'swipe-indicator right favorite';
+      rightIndicator.textContent = 'FAVORITE';
+      
+      eventElement.appendChild(leftIndicator);
+      eventElement.appendChild(rightIndicator);
+
+      const eventActions = eventElement.querySelector('.event-actions');
+      if (eventActions) {
+        const hideButton = document.createElement('button');
+        hideButton.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
+        hideButton.textContent = 'Hide';
+        hideButton.onclick = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          hideEvent(eventElement);
+        };
+        eventActions.appendChild(hideButton);
+      }
+
+      eventElement.addEventListener('touchstart', handleTouchStart, { passive: true });
+      eventElement.addEventListener('touchmove', handleTouchMove, { passive: false });
+      eventElement.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+      eventElement.addEventListener('mousedown', handleMouseStart);
+      eventElement.addEventListener('mousemove', handleMouseMove);
+      eventElement.addEventListener('mouseup', handleMouseEnd);
+      eventElement.addEventListener('mouseleave', handleMouseEnd);
+    }
+
+    function handleTouchStart(e) {
+      const touch = e.touches[0];
+      startSwipe(touch.clientX, touch.clientY, e.currentTarget);
+    }
+
+    function handleTouchMove(e) {
+      if (!isDragging) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      moveSwipe(touch.clientX, touch.clientY);
+    }
+
+    function handleTouchEnd(e) {
+      endSwipe();
+    }
+
+    function handleMouseStart(e) {
+      startSwipe(e.clientX, e.clientY, e.currentTarget);
+    }
+
+    function handleMouseMove(e) {
+      if (!isDragging) return;
+      moveSwipe(e.clientX, e.clientY);
+    }
+
+    function handleMouseEnd(e) {
+      endSwipe();
+    }
+
+    function startSwipe(x, y, element) {
+      touchStartX = x;
+      touchStartY = y;
+      currentX = x;
+      currentY = y;
+      isDragging = true;
+      currentSwipeElement = element;
+      element.classList.add('z-10');
+    }
+
+    function moveSwipe(x, y) {
+      if (!isDragging || !currentSwipeElement) return;
+
+      currentX = x;
+      currentY = y;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      if (deltaY > swipeRestrictY) {
+        return;
+      }
+
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      
+      if (Math.abs(deltaX) > 20) {
+        const opacity = Math.min(Math.abs(deltaX) / swipeThreshold, 1);
+        if (deltaX > 0) {
+          rightIndicator.style.opacity = opacity;
+          leftIndicator.style.opacity = 0;
+        } else {
+          leftIndicator.style.opacity = opacity;
+          rightIndicator.style.opacity = 0;
+        }
+      } else {
+        leftIndicator.style.opacity = 0;
+        rightIndicator.style.opacity = 0;
+      }
+
+      currentSwipeElement.style.transform = `translateX(${deltaX * 0.3}px)`;
+    }
+
+    function endSwipe() {
+      if (!isDragging || !currentSwipeElement) return;
+
+      const deltaX = currentX - touchStartX;
+      const deltaY = Math.abs(currentY - touchStartY);
+
+      currentSwipeElement.style.transform = '';
+      
+      const leftIndicator = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const rightIndicator = currentSwipeElement.querySelector('.swipe-indicator.right');
+      if (leftIndicator) leftIndicator.style.opacity = 0;
+      if (rightIndicator) rightIndicator.style.opacity = 0;
+
+      currentSwipeElement.classList.remove('z-10');
+
+      if (Math.abs(deltaX) > swipeThreshold && deltaY < swipeRestrictY) {
+        if (deltaX > 0) {
+          // Right swipe - favorite
+          favoriteEvent(currentSwipeElement);
+        } else {
+          // Left swipe - hide
+          hideEvent(currentSwipeElement);
+        }
+      }
+
+      isDragging = false;
+      currentSwipeElement = null;
+      touchStartX = 0;
+      touchStartY = 0;
+      currentX = 0;
+      currentY = 0;
+    }
+
+    function renderEvents() {
+      const searchTerm = searchInput.value.toLowerCase().trim();
+      const venueFilter = venueSelect.value.toLowerCase();
+      const showFavoritesOnly = favoritesOnly.checked;
+      const showHiddenEvents = showHidden.checked;
+
+      cleanupHiddenEvents();
+
+      const filteredEvents = allEventElements.filter(event => {
+        const title = getEventTitle(event);
+        const venue = event.dataset.venue || '';
+        const eventId = getEventId(event);
+        const eventDate = getEventDate(event);
+        const isFav = matchesFavorite(title, favorites);
+        const isHidden = isEventHidden(eventId, eventDate, title);
+        
+        // Update styling for favorites and hidden events
+        if (isFav) {
+          event.classList.add('bg-neutral-700', 'border-neutral-600');
+          event.classList.remove('bg-neutral-800', 'border-neutral-700');
+        } else {
+          event.classList.add('bg-neutral-800', 'border-neutral-700');
+          event.classList.remove('bg-neutral-700', 'border-neutral-600');
+        }
+        
+        if (isHidden) {
+          event.classList.add('opacity-40');
+        } else {
+          event.classList.remove('opacity-40');
+        }
+        
+        const starBtn = event.querySelector('.star-button');
+        if (starBtn) {
+          if (isFav) {
+            starBtn.textContent = '★';
+            starBtn.classList.add('text-neutral-100');
+            starBtn.classList.remove('text-neutral-400');
+          } else {
+            starBtn.textContent = '☆';
+            starBtn.classList.add('text-neutral-400');
+            starBtn.classList.remove('text-neutral-100');
+          }
+        }
+
+        const hideBtn = event.querySelector('.bg-neutral-700:not(.star-button), .bg-green-700');
+        if (hideBtn && hideBtn.textContent.includes('ide')) {
+          if (isHidden) {
+            hideBtn.textContent = 'Unhide';
+            hideBtn.className = 'bg-neutral-600 hover:bg-neutral-500 px-3 py-1 rounded text-sm';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              unhideEvent(eventId, title, eventDate);
+            };
+          } else {
+            hideBtn.textContent = 'Hide';
+            hideBtn.className = 'bg-neutral-700 hover:bg-neutral-600 px-3 py-1 rounded text-sm';
+            hideBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              hideEvent(event);
+            };
+          }
+        }
+
+        const matchesSearch = !searchTerm || title.toLowerCase().includes(searchTerm);
+        const matchesVenue = !venueFilter || venue.toLowerCase() === venueFilter;
+        const matchesFavorites = !showFavoritesOnly || isFav;
+        const matchesHidden = showHiddenEvents || !isHidden;
+
+        return matchesSearch && matchesVenue && matchesFavorites && matchesHidden;
+      });
+
+      filteredEvents.sort((a, b) => {
+        const aFav = matchesFavorite(getEventTitle(a), favorites);
+        const bFav = matchesFavorite(getEventTitle(b), favorites);
+        const aHidden = isEventHidden(getEventId(a), getEventDate(a), getEventTitle(a));
+        const bHidden = isEventHidden(getEventId(b), getEventDate(b), getEventTitle(b));
+        
+        if (aFav !== bFav) return aFav ? -1 : 1;
+        if (aHidden !== bHidden) return aHidden ? 1 : -1;
+        return 0;
+      });
+
+      eventsContainer.innerHTML = '';
+      
+      if (filteredEvents.length === 0) {
+        noEventsMessage.classList.remove('hidden');
+      } else {
+        noEventsMessage.classList.add('hidden');
+        filteredEvents.forEach(event => {
+          eventsContainer.appendChild(event);
+        });
+      }
+    }
+
+    function addFavorite() {
+      const keyword = newFavoriteInput.value.trim().toLowerCase();
+      if (keyword && !favorites.includes(keyword)) {
+        favorites.push(keyword);
+        newFavoriteInput.value = '';
+        saveFavorites();
+        renderFavoritesList();
+        renderEvents();
+      }
+    }
+
+    function removeFavorite(keyword) {
+      favorites = favorites.filter(f => f !== keyword);
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function renderFavoritesList() {
+      favoritesList.innerHTML = '';
+      favorites.forEach(fav => {
+        const div = document.createElement('div');
+        div.className = 'flex justify-between items-center p-2 bg-neutral-700 rounded';
+        
+        const span = document.createElement('span');
+        span.className = 'text-neutral-100';
+        span.textContent = fav;
+        
+        const button = document.createElement('button');
+        button.className = 'bg-neutral-600 hover:bg-neutral-500 px-2 py-1 rounded text-xs';
+        button.textContent = 'Remove';
+        button.onclick = () => removeFavorite(fav);
+        
+        div.appendChild(span);
+        div.appendChild(button);
+        favoritesList.appendChild(div);
+      });
+    }
+
+    function toggleSettings() {
+      settingsPanel.classList.toggle('hidden');
+    }
+
+    function toggleFavoriteFromEvent(button, title) {
+      const substr = prompt("Enter keyword to save as favorite (default: full title):", title);
+      if (substr === null) return;
+      if (substr === '') return;
+
+      const cleaned = substr.toLowerCase().trim();
+      const isFav = favorites.includes(cleaned);
+      if (isFav) {
+        favorites = favorites.filter(f => f !== cleaned);
+      } else {
+        favorites.push(cleaned);
+      }
+      saveFavorites();
+      renderFavoritesList();
+      renderEvents();
+    }
+
+    function exportFavorites() {
+      favoritesJson.value = JSON.stringify(favorites, null, 2);
+    }
+
+    function importFavorites() {
+      try {
+        const imported = JSON.parse(favoritesJson.value);
+        if (Array.isArray(imported)) {
+          favorites = imported.map(f => String(f).toLowerCase().trim()).filter(Boolean);
+          saveFavorites();
+          renderFavoritesList();
+          renderEvents();
+          alert('Favorites imported successfully!');
+        } else {
+          alert('Invalid format: Expected an array of strings');
+        }
+      } catch (e) {
+        alert("Invalid JSON format: " + e.message);
+      }
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', renderEvents);
+    venueSelect.addEventListener('change', renderEvents);
+    favoritesOnly.addEventListener('change', renderEvents);
+    showHidden.addEventListener('change', renderEvents);
+    
+    newFavoriteInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        addFavorite();
+      }
+    });
+
+    // Initialize on page load
+    window.addEventListener('load', () => {
+      checkStorageAvailability();
+      
+      allEventElements = Array.from(document.querySelectorAll('.event'));
+      
+      allEventElements.forEach((event, index) => {
+        if (!event.dataset.eventId) {
+          event.dataset.eventId = `event-${index}-${Date.now()}`;
+        }
+        addSwipeHandlers(event);
+      });
+      
+      renderFavoritesList();
+      renderEvents();
+    });
+  </script>
+</body>
+</html>
