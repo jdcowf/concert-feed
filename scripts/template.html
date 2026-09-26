@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{TITLE}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f0f0f;
+      --surface:  #1a1a1a;
+      --border:   #2a2a2a;
+      --text:     #e8e8e8;
+      --muted:    #888;
+      --accent:   #e8e8e8;
+      --fav-bg:   #1e1e18;
+      --fav-border: #4a4a30;
+    }
+
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* ── Layout ─────────────────────────────────── */
+    .page { max-width: 680px; margin: 0 auto; padding: 0 16px 64px; }
+
+    header {
+      padding: 32px 0 24px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    header h1 { font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+
+    /* ── Controls ───────────────────────────────── */
+    .controls { display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+
+    .controls-row { display: flex; gap: 8px; }
+
+    input[type="text"], select {
+      flex: 1;
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus, select:focus { border-color: #555; }
+    select option { background: var(--surface); }
+
+    .checkboxes { display: flex; gap: 20px; align-items: center; }
+    .checkboxes label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: var(--muted); }
+    .checkboxes label:hover { color: var(--text); }
+    input[type="checkbox"] { accent-color: var(--text); width: 14px; height: 14px; }
+
+    .btn-settings {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-left: auto;
+      transition: all 0.15s;
+    }
+    .btn-settings:hover { border-color: #555; color: var(--text); }
+
+    /* ── Settings panel ─────────────────────────── */
+    #settingsPanel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+    #settingsPanel h2 { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+    #settingsPanel h3 { font-size: 13px; font-weight: 600; color: var(--muted); margin: 16px 0 8px; }
+
+    .kw-input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .kw-input-row input { flex: 1; }
+
+    .btn {
+      background: var(--border);
+      color: var(--text);
+      border: none;
+      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #3a3a3a; }
+
+    #favoritesList { display: flex; flex-direction: column; gap: 6px; }
+    .fav-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg);
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: 13px;
+    }
+    .fav-item button { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; }
+    .fav-item button:hover { color: var(--text); }
+
+    textarea {
+      width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-family: monospace;
+      resize: vertical;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .btn-row { display: flex; gap: 8px; }
+
+    /* ── Storage warning ────────────────────────── */
+    #storageWarning {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Event cards ────────────────────────────── */
+    #events { display: flex; flex-direction: column; gap: 1px; }
+
+    .event {
+      background: var(--surface);
+      border-radius: 0;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      cursor: grab;
+      transition: transform 0.15s ease-in-out, opacity 0.2s;
+    }
+    .event:first-child { border-top: 1px solid var(--border); }
+    .event:active { cursor: grabbing; }
+
+    .event.is-favorite {
+      background: var(--fav-bg);
+    }
+
+    .event-meta {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
+    .venue-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .tag {
+      font-size: 11px;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+
+    .event-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      margin-bottom: 12px;
+      line-height: 1.3;
+    }
+    .event-title a { color: var(--text); text-decoration: none; }
+    .event-title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    .event-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .btn-tickets {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 5px 12px;
+      transition: all 0.15s;
+    }
+    .btn-tickets:hover { border-color: #555; color: var(--text); }
+
+    .star-button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 6px;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .star-button:hover, .star-button.active { color: var(--text); }
+
+    /* ── Swipe indicators ───────────────────────── */
+    .swipe-indicator {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+    .swipe-indicator.left  { right: 4px; }
+    .swipe-indicator.right { left: 4px; }
+
+    /* ── Empty state ────────────────────────────── */
+    #noEventsMessage { text-align: center; padding: 64px 0; color: var(--muted); font-size: 14px; }
+
+    /* ── Hidden state ───────────────────────────── */
+    .event.is-hidden { opacity: 0.3; }
+
+    /* ── Footer ─────────────────────────────────── */
+    footer { text-align: center; padding: 32px 0 16px; font-size: 12px; color: #444; }
+
+    @media (max-width: 520px) {
+      header h1 { font-size: 19px; }
+      .controls-row { flex-direction: column; }
+      .checkboxes { flex-wrap: wrap; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>{{TITLE}}</h1>
+    </header>
+
+    <div id="storageWarning" style="display:none">
+      Favorites are stored in memory only this session — they'll reset on refresh.
+    </div>
+
+    <div class="controls">
+      <div class="controls-row">
+        <input type="text" id="search" placeholder="Search…" autocomplete="off" />
+        <select id="venueFilter">
+          <option value="">All venues</option>
+          {{VENUES_OPTIONS}}
+        </select>
+      </div>
+      <div class="checkboxes">
+        <label><input type="checkbox" id="favoritesOnly" /> Favorites only</label>
+        <label><input type="checkbox" id="showHidden" /> Show hidden</label>
+        <button class="btn-settings" onclick="toggleSettings()">Settings</button>
+      </div>
+    </div>
+
+    <div id="settingsPanel" style="display:none">
+      <h2>Favorite keywords</h2>
+      <div class="kw-input-row">
+        <input type="text" id="newFavoriteInput" placeholder="Add keyword…" />
+        <button class="btn" onclick="addFavorite()">Add</button>
+      </div>
+      <div id="favoritesList"></div>
+      <h3>Import / Export</h3>
+      <textarea id="favoritesJson" rows="3"></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="exportFavorites()">Export</button>
+        <button class="btn" onclick="importFavorites()">Import</button>
+      </div>
+    </div>
+
+    <div id="events">
+      {{EVENTS}}
+    </div>
+
+    <div id="noEventsMessage" style="display:none">No events match your filters.</div>
+
+    <footer>Swipe left to hide · swipe right to star</footer>
+  </div>
+
+  <script>
+    const searchInput    = document.getElementById('search');
+    const venueSelect    = document.getElementById('venueFilter');
+    const favoritesOnly  = document.getElementById('favoritesOnly');
+    const showHidden     = document.getElementById('showHidden');
+    const favoritesList  = document.getElementById('favoritesList');
+    const newFavoriteInput = document.getElementById('newFavoriteInput');
+    const settingsPanel  = document.getElementById('settingsPanel');
+    const favoritesJson  = document.getElementById('favoritesJson');
+    const eventsContainer = document.getElementById('events');
+    const noEventsMessage = document.getElementById('noEventsMessage');
+    const storageWarning = document.getElementById('storageWarning');
+
+    let favorites    = [];
+    let hiddenEvents = [];
+    let allEventElements = [];
+    let storageAvailable = true;
+
+    // Touch/swipe
+    let touchStartX = 0, touchStartY = 0, currentX = 0, currentY = 0;
+    const swipeThreshold = 100, swipeRestrictY = 50;
+    let isDragging = false, currentSwipeElement = null;
+
+    function checkStorageAvailability() {
+      try {
+        localStorage.setItem('_t', '1');
+        localStorage.removeItem('_t');
+        const sf = localStorage.getItem('favorites');
+        const sh = localStorage.getItem('hiddenEvents');
+        if (sf) favorites    = JSON.parse(sf);
+        if (sh) { hiddenEvents = JSON.parse(sh); cleanupHiddenEvents(); }
+      } catch(e) {
+        storageAvailable = false;
+        storageWarning.style.display = '';
+      }
+    }
+
+    function saveFavorites() {
+      if (storageAvailable) try { localStorage.setItem('favorites', JSON.stringify(favorites)); } catch(e) {}
+    }
+    function saveHiddenEvents() {
+      if (storageAvailable) try { localStorage.setItem('hiddenEvents', JSON.stringify(hiddenEvents)); } catch(e) {}
+    }
+
+    function cleanupHiddenEvents() {
+      const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+      const before = hiddenEvents.length;
+      hiddenEvents = hiddenEvents.filter(h => { try { return new Date(h.date) >= yesterday; } catch(e) { return true; } });
+      if (hiddenEvents.length !== before) saveHiddenEvents();
+    }
+
+    function isEventHidden(id, date, title) {
+      return hiddenEvents.some(h => h.id === id || (h.title === title && h.date === date));
+    }
+
+    function getEventTitle(el) { return (el.dataset.title || '').toLowerCase(); }
+    function getEventId(el)    { return el.dataset.eventId || ''; }
+    function getEventDate(el)  { return el.dataset.date || ''; }
+    function getEventVenue(el) { return (el.dataset.venue || '').toLowerCase(); }
+
+    function matchesFavorite(title, favs) {
+      return favs.some(f => title.includes(f));
+    }
+
+    // ── Swipe ──────────────────────────────────────────────────────────────
+    function addSwipeHandlers(el) {
+      el.addEventListener('touchstart', onTouchStart, { passive: true });
+      el.addEventListener('touchmove',  onTouchMove,  { passive: true });
+      el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+    }
+
+    function onTouchStart(e) {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+      isDragging  = true;
+      currentSwipeElement = this;
+      this.classList.add('z-10');
+    }
+
+    function onTouchMove(e) {
+      if (!isDragging || !currentSwipeElement) return;
+      currentX = e.touches[0].clientX;
+      currentY = e.touches[0].clientY;
+      const dx = currentX - touchStartX;
+      const dy = Math.abs(currentY - touchStartY);
+      if (dy > swipeRestrictY) return;
+      currentSwipeElement.style.transform = `translateX(${dx}px)`;
+      const pct = Math.min(Math.abs(dx) / swipeThreshold, 1);
+      const left  = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const right = currentSwipeElement.querySelector('.swipe-indicator.right');
+      if (dx < 0 && left)  left.style.opacity  = pct;
+      if (dx > 0 && right) right.style.opacity = pct;
+    }
+
+    function onTouchEnd() {
+      if (!isDragging || !currentSwipeElement) return;
+      currentSwipeElement.style.transform = '';
+      const dx = currentX - touchStartX;
+      const dy = Math.abs(currentY - touchStartY);
+      const left  = currentSwipeElement.querySelector('.swipe-indicator.left');
+      const right = currentSwipeElement.querySelector('.swipe-indicator.right');
+      if (left)  left.style.opacity  = 0;
+      if (right) right.style.opacity = 0;
+      currentSwipeElement.classList.remove('z-10');
+      if (Math.abs(dx) > swipeThreshold && dy < swipeRestrictY) {
+        dx > 0 ? favoriteEvent(currentSwipeElement) : hideEvent(currentSwipeElement);
+      }
+      isDragging = false; currentSwipeElement = null;
+      touchStartX = touchStartY = currentX = currentY = 0;
+    }
+
+    // ── Hide / Favorite ───────────────────────────────────────────────────
+    function hideEvent(el) {
+      const id    = getEventId(el);
+      const title = getEventTitle(el);
+      const date  = getEventDate(el);
+      if (!isEventHidden(id, date, title)) {
+        hiddenEvents.push({ id, title, date });
+        saveHiddenEvents();
+      }
+      renderEvents();
+    }
+
+    function unhideEvent(id, title, date) {
+      hiddenEvents = hiddenEvents.filter(h => !(h.id === id || (h.title === title && h.date === date)));
+      saveHiddenEvents();
+      renderEvents();
+    }
+
+    function favoriteEvent(el) {
+      const title = getEventTitle(el);
+      if (!favorites.includes(title)) {
+        favorites.push(title);
+        saveFavorites();
+        renderFavoritesList();
+      }
+      renderEvents();
+    }
+
+    // ── Render ────────────────────────────────────────────────────────────
+    function renderEvents() {
+      const search   = searchInput.value.toLowerCase().trim();
+      const venue    = venueSelect.value.toLowerCase();
+      const favsOnly = favoritesOnly.checked;
+      const showHid  = showHidden.checked;
+      cleanupHiddenEvents();
+
+      const filtered = allEventElements.filter(el => {
+        const title   = getEventTitle(el);
+        const elVenue = getEventVenue(el);
+        const id      = getEventId(el);
+        const date    = getEventDate(el);
+        const isFav   = matchesFavorite(title, favorites);
+        const isHid   = isEventHidden(id, date, title);
+
+        el.classList.toggle('is-favorite', isFav);
+        el.classList.toggle('is-hidden',   isHid);
+
+        const star = el.querySelector('.star-button');
+        if (star) { star.textContent = isFav ? '★' : '☆'; star.classList.toggle('active', isFav); }
+
+        return (!search   || title.includes(search))
+            && (!venue    || elVenue === venue)
+            && (!favsOnly || isFav)
+            && (showHid   || !isHid);
+      });
+
+      // favorites first, then date order preserved from DOM
+      filtered.sort((a, b) => {
+        const af = matchesFavorite(getEventTitle(a), favorites);
+        const bf = matchesFavorite(getEventTitle(b), favorites);
+        const ah = isEventHidden(getEventId(a), getEventDate(a), getEventTitle(a));
+        const bh = isEventHidden(getEventId(b), getEventDate(b), getEventTitle(b));
+        if (af !== bf) return af ? -1 : 1;
+        if (ah !== bh) return ah ? 1 : -1;
+        return 0;
+      });
+
+      eventsContainer.innerHTML = '';
+      noEventsMessage.style.display = filtered.length ? 'none' : '';
+      filtered.forEach(el => eventsContainer.appendChild(el));
+    }
+
+    // ── Favorites management ──────────────────────────────────────────────
+    function addFavorite() {
+      const kw = newFavoriteInput.value.trim().toLowerCase();
+      if (kw && !favorites.includes(kw)) {
+        favorites.push(kw);
+        newFavoriteInput.value = '';
+        saveFavorites(); renderFavoritesList(); renderEvents();
+      }
+    }
+
+    function removeFavorite(kw) {
+      favorites = favorites.filter(f => f !== kw);
+      saveFavorites(); renderFavoritesList(); renderEvents();
+    }
+
+    function renderFavoritesList() {
+      favoritesList.innerHTML = '';
+      favorites.forEach(fav => {
+        const div = document.createElement('div');
+        div.className = 'fav-item';
+        div.innerHTML = `<span>${fav}</span><button onclick="removeFavorite('${fav.replace(/'/g,"\\'")}')">Remove</button>`;
+        favoritesList.appendChild(div);
+      });
+    }
+
+    function toggleSettings() {
+      settingsPanel.style.display = settingsPanel.style.display === 'none' ? '' : 'none';
+    }
+
+    function toggleFavoriteFromEvent(button, title) {
+      const substr = prompt("Keyword to save as favorite:", title);
+      if (!substr) return;
+      const kw = substr.toLowerCase().trim();
+      favorites.includes(kw) ? (favorites = favorites.filter(f => f !== kw)) : favorites.push(kw);
+      saveFavorites(); renderFavoritesList(); renderEvents();
+    }
+
+    function exportFavorites() { favoritesJson.value = JSON.stringify(favorites, null, 2); }
+
+    function importFavorites() {
+      try {
+        const arr = JSON.parse(favoritesJson.value);
+        if (!Array.isArray(arr)) throw new Error('Expected array');
+        favorites = arr.map(f => String(f).toLowerCase().trim()).filter(Boolean);
+        saveFavorites(); renderFavoritesList(); renderEvents();
+      } catch(e) { alert('Invalid JSON: ' + e.message); }
+    }
+
+    // ── Event listeners ───────────────────────────────────────────────────
+    searchInput.addEventListener('input', renderEvents);
+    venueSelect.addEventListener('change', renderEvents);
+    favoritesOnly.addEventListener('change', renderEvents);
+    showHidden.addEventListener('change', renderEvents);
+    newFavoriteInput.addEventListener('keypress', e => { if (e.key === 'Enter') addFavorite(); });
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    window.addEventListener('load', () => {
+      checkStorageAvailability();
+      allEventElements = Array.from(document.querySelectorAll('.event'));
+      allEventElements.forEach((el, i) => {
+        if (!el.dataset.eventId) el.dataset.eventId = `ev-${i}-${Date.now()}`;
+        addSwipeHandlers(el);
+        // Add swipe indicator spans if absent
+        if (!el.querySelector('.swipe-indicator')) {
+          el.insertAdjacentHTML('beforeend',
+            '<span class="swipe-indicator left">hide</span>' +
+            '<span class="swipe-indicator right">star</span>');
+        }
+      });
+      renderFavoritesList();
+      renderEvents();
+    });
+  </script>
+</body>
+</html>

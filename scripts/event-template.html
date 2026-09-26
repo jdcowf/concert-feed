@@ -1,0 +1,18 @@
+<div class="event slidingCard" 
+     data-title="{e.title.lower()}" data-venue="{e.venue.lower()}" data-date="{e.date_str}">
+  <div class="event-meta">
+    <span class="venue-label">{e.venue}</span>
+    <div class="tags">
+      <span class="tag">{e.date_str}</span>
+      {TIME_SPAN}
+    </div>
+  </div>
+  <h2 class="event-title">
+    <a href="{e.link}" target="_blank" rel="noopener">{e.title}</a>
+  </h2>
+  <div class="event-actions">
+    <a class="btn-tickets" href="{e.tickets}" target="_blank" rel="noopener">Tickets →</a>
+    <button class="star-button" aria-label="Toggle favorite"
+            onclick="toggleFavoriteFromEvent(this, '{escaped_title}')">☆</button>
+  </div>
+</div>
